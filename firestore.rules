@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── 관리자 이메일 (교사) ───────────────────────────────────
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'peace@peace.re.kr';
+    }
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // ─── 보안 검증 함수들 ─────────────────────────────────────
+    // XP 증가량: 세션 1회 최대 +8000 (8시간 × 60분 × 10 × 1.5 = 7200 + 여유)
+    function isValidXpIncrement() {
+      return !('totalXp' in request.resource.data) ||
+             !('totalXp' in resource.data) ||
+             (request.resource.data.totalXp - resource.data.totalXp) <= 8000;
+    }
+
+    // 골드 변동: 증가 최대 +8000, 감소 최소 -5000 (상점 구매 허용)
+    function isValidGoldChange() {
+      return !('gold' in request.resource.data) ||
+             !('gold' in resource.data) ||
+             ((request.resource.data.gold - resource.data.gold) <= 8000 &&
+              (request.resource.data.gold - resource.data.gold) >= -5000);
+    }
+
+    // ─── 유저 데이터 ─────────────────────────────────────────────
+    // 본인 또는 관리자만 쓰기 가능, 로그인하면 읽기 가능 (랭킹 등)
+    match /users/{userId} {
+      allow read: if isLoggedIn();
+      allow create: if isOwner(userId);
+      // update: 본인은 XP/골드 범위 검증 필수, 관리자는 자유롭게
+      allow update: if (isOwner(userId) && isValidXpIncrement() && isValidGoldChange()) || isAdmin();
+      allow delete: if isAdmin();
+
+      // ─── 독서 세션: 데이터 범위 검증 ───────────────────────
+      match /sessions/{sessionId} {
+        allow read: if isOwner(userId) || isAdmin();
+        // create: elapsedTime 최대 8시간, XP/골드 최대 8000
+        allow create: if isOwner(userId) &&
+                         request.resource.data.elapsedTime is number &&
+                         request.resource.data.elapsedTime <= 28800 &&
+                         request.resource.data.elapsedTime >= 0 &&
+                         request.resource.data.rewards.xp is number &&
+                         request.resource.data.rewards.xp <= 8000 &&
+                         request.resource.data.rewards.gold is number &&
+                         request.resource.data.rewards.gold <= 8000;
+        allow update: if isOwner(userId) || isAdmin();
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    // ─── 공개 피드 ────────────────────────────────────────────────
+    // 로그인 필수 읽기, 본인 글만 삭제/수정, 관리자 전체 권한
+    // create: uid 일치 검증 + elapsedTime 범위 검증
+    match /public_feed/{docId} {
+      allow read: if isLoggedIn();
+      allow create: if isLoggedIn() &&
+                       request.resource.data.uid == request.auth.uid &&
+                       request.resource.data.elapsedTime is number &&
+                       request.resource.data.elapsedTime <= 28800;
+      allow update: if isLoggedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow delete: if isLoggedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+
+    // ─── 시스템 설정 (관리자 전용 쓰기) ─────────────────────────
+    match /system/{docId} {
+      allow read: if isLoggedIn();
+      allow write: if isAdmin();
+    }
+
+    // ─── 공지사항 (관리자 전용 쓰기, 읽기는 로그인 필수) ────────
+    match /announcements/{docId} {
+      allow read: if isLoggedIn();
+      allow write: if isAdmin();
+    }
+  }
+}
