@@ -26,6 +26,7 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isbn, setIsbn] = useState('');
     const [bookTitle, setBookTitle] = useState('');
+    const [bookAuthor, setBookAuthor] = useState('');
     const [bookImage, setBookImage] = useState('');
     const [note, setNote] = useState('');
     const [summary, setSummary] = useState('');
@@ -104,8 +105,8 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
 
     const selectBook = (book) => {
         setBookTitle(book.title);
+        setBookAuthor(book.author || '');
         setBookImage(book.image);
-        // Clean up search results
         setSearchResults([]);
     };
 
@@ -253,8 +254,8 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                 }
             </section>
 
-            {/* ActivityHeatmap — 최근 책 아래 */}
-            <ActivityHeatmap createdAt={stats?.createdAt} onGoToLibrary={onGoToLibrary} />
+            {/* ActivityHeatmap — 일시 숨김 */}
+            {/* <ActivityHeatmap createdAt={stats?.createdAt} onGoToLibrary={onGoToLibrary} /> */}
 
             {/* 📋 오늘의 임무 (데일리 퀘스트) */}
             <section className="px-4">
@@ -392,21 +393,21 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                                     )}
 
                                     {bookImage && (
-                                        <div className="flex justify-center py-2 relative group">
-                                            <div className="w-20 h-28 rounded shadow-lg overflow-hidden border border-white/10 relative">
-                                                <img src={bookImage} alt="Selected Cover" className="w-full h-full object-cover" />
-                                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setBookTitle('');
-                                                            setBookImage('');
-                                                        }}
-                                                        className="size-8 rounded-full bg-red-500/80 hover:bg-red-500 text-white flex items-center justify-center backdrop-blur-sm"
-                                                    >
-                                                        <span className="material-symbols-outlined text-lg">close</span>
-                                                    </button>
+                                        <div className="flex items-center gap-3 py-2">
+                                            <div className="relative group shrink-0">
+                                                <div className="w-14 h-20 rounded shadow-lg overflow-hidden border border-white/10">
+                                                    <img src={bookImage} alt="Selected Cover" className="w-full h-full object-cover" />
                                                 </div>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setBookTitle(''); setBookAuthor(''); setBookImage(''); }}
+                                                    className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow"
+                                                >
+                                                    <span className="material-symbols-outlined text-xs">close</span>
+                                                </button>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-white text-sm truncate">{bookTitle}</p>
+                                                {bookAuthor && <p className="text-[11px] text-[#92c99b] truncate mt-0.5">{bookAuthor}</p>}
                                             </div>
                                         </div>
                                     )}
@@ -464,6 +465,7 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                                             mode: mode.id,
                                             isbn,
                                             bookTitle,
+                                            bookAuthor,
                                             bookImage,
                                             note,
                                             summary,
@@ -476,6 +478,7 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                                         setTimeout(() => setSaveToast(null), 3500);
                                         setIsModalOpen(false);
                                         setBookTitle('');
+                                        setBookAuthor('');
                                         setBookImage('');
                                         setNote('');
                                         setSummary('');

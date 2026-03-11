@@ -217,6 +217,7 @@ export default function App() {
     const [bgmOn, setBgmOn] = useState(() => JSON.parse(localStorage.getItem('rrq_bgm') ?? 'true'));
     const [showMenu, setShowMenu] = useState(false);
     const [floatingXP, setFloatingXP] = useState(null); // { xp, id }
+    const [empireRank, setEmpireRank] = useState(null); // 내 제국 내 순위
 
     // PWA 업데이트 감지
     const { needRefresh, updateServiceWorker } = (() => {
@@ -245,6 +246,23 @@ export default function App() {
         document.addEventListener('pointerdown', handler);
         return () => document.removeEventListener('pointerdown', handler);
     }, [showMenu, showNotifications]);
+
+    // 제국 내 순위 계산 (프로필 열릴 때)
+    useEffect(() => {
+        if (view !== 'profile' || !auth.currentUser || !stats?.empireId) return;
+        getDocs(collection(db, 'users')).then(snap => {
+            const empireId = stats.empireId;
+            const myXp = stats.totalXp || 0;
+            const members = [];
+            snap.forEach(d => {
+                const data = d.data();
+                if (data.empireId === empireId) members.push(data.totalXp || 0);
+            });
+            members.sort((a, b) => b - a);
+            const rank = members.findIndex(xp => xp <= myXp) + 1;
+            setEmpireRank(rank > 0 ? rank : members.length);
+        });
+    }, [view, stats?.empireId, stats?.totalXp]);
 
     // Theme Management
     const [darkMode, setDarkMode] = useState(() => {
@@ -350,9 +368,9 @@ export default function App() {
             const newTotalSessions = (userData.totalSessions || 0) + 1;
             const addedMinutes = Math.floor((sessionData.elapsedTime || 0) / 60);
             const newTotalMinutes = (userData.totalMinutes || 0) + addedMinutes;
-            const todayTotalMinutes = Math.floor(
-                (userData.todayMinutes || 0) + addedMinutes
-            );
+            // 날짜 키로 오늘 누적 시간 추적 (일 경계 자동 처리)
+            const todayMinKey = `todayMin_${getTodayKey()}`;
+            const todayTotalMinutes = (userData[todayMinKey] || 0) + addedMinutes;
 
             // 6. 업적 체크
             const earnedIds = userData.achievements || [];
@@ -412,6 +430,7 @@ export default function App() {
                 streak: newStreak,
                 totalSessions: increment(1),
                 totalMinutes: increment(addedMinutes),
+                [todayMinKey]: increment(addedMinutes),
                 ...(newAchievements.length > 0 && {
                     achievements: arrayUnion(...newAchievements.map(a => a.id))
                 }),
@@ -514,7 +533,7 @@ export default function App() {
                     </div>
                     <div className="flex gap-2">
                         <button
-                            onClick={() => { updateServiceWorker(true); }}
+                            onClick={() => { updateServiceWorker(true).then(() => window.location.reload()); }}
                             className="bg-[#102213] text-[#2bee4b] text-xs font-black px-4 py-1.5 rounded-lg uppercase tracking-widest"
                         >업데이트</button>
                         <button onClick={() => setShowUpdateBanner(false)} className="text-[#102213]/60 text-xs px-2">✕</button>
@@ -574,7 +593,8 @@ export default function App() {
                         </button>
 
                         {showNotifications && (
-                            <div className="absolute top-full right-0 mt-3 w-72 bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-2xl shadow-2xl p-4 animate-in fade-in slide-in-from-top-2 z-[110]">
+                            <div className="absolute top-full right-0 mt-3 w-72 bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-2xl shadow-2xl p-4 animate-in fade-in slide-in-from-top-2 z-[110]"
+                                onPointerDown={(e) => e.stopPropagation()}>
                                 <h4 className="text-sm font-bold mb-3 flex items-center gap-2 text-slate-900 dark:text-white">
                                     <span className="material-symbols-outlined text-xs text-[#2bee4b]">campaign</span>
                                     황실 전령
@@ -603,6 +623,7 @@ export default function App() {
                             <div
                                 className="absolute top-full right-0 mt-3 w-56 bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-2xl shadow-2xl p-2 animate-in fade-in slide-in-from-top-2 z-[110]"
                                 onClick={(e) => e.stopPropagation()}
+                                onPointerDown={(e) => e.stopPropagation()}
                             >
                                 {/* 사용자 이름 */}
                                 <div className="px-3 py-2 mb-1 border-b border-stone-100 dark:border-white/5">
@@ -678,15 +699,30 @@ export default function App() {
                 {view === 'dashboard' && <QuestBoard stats={stats} onSaveSession={handleSaveSession} onGoToLibrary={() => setView('library')} />}
                 {view === 'library' && <RoyalLibrary />}
                 {view === 'community' && <Community darkMode={darkMode} stats={stats} onShopPurchase={handleShopPurchase} />}
+                {view === 'shop' && (
+                    <div className="px-4 py-6 max-w-lg mx-auto">
+                        <GoldShop stats={stats} onPurchase={handleShopPurchase} />
+                    </div>
+                )}
                 {view === 'profile' && (
                     <div className="text-center py-20 px-6 animate-book">
-                        <div className="size-32 rounded-full border-4 border-[#2bee4b] mx-auto p-1 mb-6 shadow-[0_0_40px_rgba(43,238,75,0.3)]">
-                            <div className="w-full h-full rounded-full bg-cover bg-center" style={{ backgroundImage: `url('https://api.dicebear.com/7.x/avataaars/svg?seed=${isMocking ? 'demo' : user?.uid}')` }}></div>
+                        {/* 프로필 아바타 */}
+                        <div className="relative size-32 mx-auto mb-6">
+                            <div className="size-full rounded-full border-4 border-[#2bee4b] p-1 shadow-[0_0_40px_rgba(43,238,75,0.3)]">
+                                <div className="w-full h-full rounded-full bg-cover bg-center" style={{ backgroundImage: `url('https://api.dicebear.com/7.x/avataaars/svg?seed=${isMocking ? 'demo' : user?.uid}')` }}></div>
+                            </div>
+                            {/* 관리자 왕관 */}
+                            {user?.email === 'peace@peace.re.kr' && (
+                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-2xl" title="관리자">👑</div>
+                            )}
                         </div>
-                        <h2 className="text-3xl font-black mb-1 font-mono tracking-tight text-slate-900 dark:text-white">{stats?.displayName || '황실 학자'}</h2>
+                        <h2 className="text-3xl font-black mb-1 font-mono tracking-tight text-slate-900 dark:text-white">
+                            {user?.email === 'peace@peace.re.kr' && <span className="text-yellow-400 mr-1">👑</span>}
+                            {stats?.displayName || '황실 학자'}
+                        </h2>
                         <p className="text-[#057a1b] dark:text-[#2bee4b] font-black uppercase tracking-[0.3em] text-[10px] mb-6">{stats?.title || '입문 학자'}</p>
 
-                        <div className="flex items-center justify-center gap-2 mb-8">
+                        <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
                             <div className={`px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${stats?.empireId === 'logreia' ? 'bg-amber-400/10 border-amber-400 text-amber-400' :
                                 stats?.empireId === 'visiontium' ? 'bg-purple-400/10 border-purple-400 text-purple-400' :
                                     stats?.empireId === 'factoria' ? 'bg-cyan-400/10 border-cyan-400 text-cyan-400' :
@@ -697,6 +733,17 @@ export default function App() {
                                     {stats?.empireId ? (RPG_CONFIG.EMPIRES[stats.empireId]?.label || stats.empireId) : '소속 없음'}
                                 </span>
                             </div>
+                            {/* 제국 내 순위 */}
+                            {empireRank && empireRank <= 3 && (
+                                <div className="px-3 py-1.5 rounded-full bg-yellow-400/10 border border-yellow-400 text-yellow-400 text-[10px] font-black uppercase tracking-widest">
+                                    {['🥇', '🥈', '🥉'][empireRank - 1]} 제국 {empireRank}위
+                                </div>
+                            )}
+                            {empireRank && empireRank > 3 && (
+                                <div className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-gray-400 text-[10px] font-black uppercase tracking-widest">
+                                    제국 {empireRank}위
+                                </div>
+                            )}
                         </div>
 
                         {/* My Page Statistics Dashboard */}
@@ -868,13 +915,13 @@ export default function App() {
                         <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: view === 'community' ? "'FILL' 1" : "''" }}>diversity_3</span>
                         <span className="text-[9px] font-black uppercase tracking-wide">피드</span>
                     </button>
-                    {/* 마이 */}
+                    {/* 황실상회 */}
                     <button
-                        onClick={() => setView('profile')}
-                        className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-2xl transition-all active:scale-90 ${view === 'profile' ? 'text-[#2bee4b] bg-[#2bee4b]/10' : 'text-gray-400 dark:text-gray-500'}`}
+                        onClick={() => setView('shop')}
+                        className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-2xl transition-all active:scale-90 ${view === 'shop' ? 'text-[#2bee4b] bg-[#2bee4b]/10' : 'text-gray-400 dark:text-gray-500'}`}
                     >
-                        <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: view === 'profile' ? "'FILL' 1" : "''" }}>person</span>
-                        <span className="text-[9px] font-black uppercase tracking-wide">마이</span>
+                        <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: view === 'shop' ? "'FILL' 1" : "''" }}>storefront</span>
+                        <span className="text-[9px] font-black uppercase tracking-wide">상회</span>
                     </button>
                 </div>
             </div>

@@ -2,7 +2,7 @@
  * DailyQuests — 오늘의 임무 위젯
  * QuestBoard 하단에 삽입. 오늘의 퀘스트 3개 + 진행 상황 표시.
  */
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { getTodayKey, getTodayQuests } from '../utils/dailyQuests';
 
 export default function DailyQuests({ stats, todaySeconds }) {
@@ -10,6 +10,13 @@ export default function DailyQuests({ stats, todaySeconds }) {
     const quests = useMemo(() => getTodayQuests(), [todayKey]);
     const completedToday = stats?.dailyQuestProgress?.[todayKey] || {};
     const todayMinutes = Math.floor((todaySeconds || 0) / 60);
+
+    // 누적 미션 성공률 계산
+    const allProgress = stats?.dailyQuestProgress || {};
+    const allDays = Object.keys(allProgress);
+    const totalPossible = allDays.length * 3;
+    const totalCompleted = allDays.reduce((sum, d) => sum + Object.keys(allProgress[d]).length, 0);
+    const successRate = totalPossible > 0 ? Math.round((totalCompleted / totalPossible) * 100) : 0;
 
     // 퀘스트별 진행도 계산
     const getProgress = (quest) => {
@@ -30,6 +37,27 @@ export default function DailyQuests({ stats, todaySeconds }) {
 
     return (
         <div className="bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-3xl p-4 shadow-sm">
+            {/* 누적 미션 성공률 배너 */}
+            {allDays.length > 0 && (
+                <div className="flex items-center justify-between mb-4 px-1 py-2 bg-stone-50 dark:bg-black/20 rounded-2xl">
+                    <div>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-gray-500">누적 미션 성공률</p>
+                        <p className="text-lg font-black text-slate-900 dark:text-white">{successRate}%</p>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-[9px] text-slate-400 dark:text-gray-600">{totalCompleted} / {totalPossible} 완료</p>
+                        <p className="text-[9px] text-slate-400 dark:text-gray-600">{allDays.length}일간의 기록</p>
+                    </div>
+                    <div className="w-12 h-12">
+                        <svg className="w-12 h-12 -rotate-90" viewBox="0 0 36 36">
+                            <circle cx="18" cy="18" r="15" fill="none" strokeWidth="3" className="stroke-stone-100 dark:stroke-black/40" />
+                            <circle cx="18" cy="18" r="15" fill="none" stroke="#2bee4b" strokeWidth="3"
+                                strokeDasharray={`${successRate * 0.94} 94`} strokeLinecap="round" />
+                        </svg>
+                    </div>
+                </div>
+            )}
+
             {/* 헤더 */}
             <div className="flex items-center justify-between mb-3">
                 <div>
