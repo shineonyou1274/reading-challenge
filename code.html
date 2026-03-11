@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Reading Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2bee4b",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102213",
+                        "card-dark": "#1a331d",
+                        "card-light": "#ffffff",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "1.5rem", "xl": "2rem", "2xl": "2.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-gray-900 dark:text-white font-display antialiased transition-colors duration-300 min-h-screen relative pb-28">
+<!-- Top Header -->
+<header class="flex items-center justify-between p-6 pt-8">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="size-10 rounded-full bg-gray-200 dark:bg-gray-700 bg-cover bg-center border-2 border-white dark:border-[#32673b]" data-alt="Portrait of a young woman smiling" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBFvlqi_CoEI4bCsfbh6wtxsZyhX2_3Iw0xm91xupqajovDKWpmKz54bWn2mCWgRoOFKTE2PlWqmwCAVY3C-MP0tzUiqhnFngtg5sFDOmc04gAXx2fg1zZQmtKdwouln1FeaYhM47mPdh1PXkdVPTRcr2PNvV6Zh4B3vigt5B22vNYoOdDN6ge-izhYyzNtvYELEbFj9npuoG8GBf_aY5GEQtZjKDwtz1lKMDxaaNiLptJZYYs0-hgNv2HTFzLbww3eBx6mz27XWjf7');"></div>
+<div class="absolute -bottom-1 -right-1 bg-primary text-[#102213] text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-background-light dark:border-background-dark">
+                    Lvl 5
+                </div>
+</div>
+</div>
+<button class="size-10 flex items-center justify-center rounded-full bg-white dark:bg-[#1a331d] border border-gray-100 dark:border-[#32673b] shadow-sm text-gray-600 dark:text-white relative">
+<span class="material-symbols-outlined text-[24px]">notifications</span>
+<span class="absolute top-2 right-2.5 size-2 bg-red-500 rounded-full border border-white dark:border-[#1a331d]"></span>
+</button>
+</header>
+<!-- Welcome & Stats -->
+<section class="px-6 mb-8">
+<h1 class="text-3xl font-bold mb-6 text-gray-900 dark:text-white tracking-tight leading-tight">
+            Good Evening, <br/><span class="text-gray-500 dark:text-[#92c99b]">Alex</span>
+</h1>
+<!-- Level Progress Card -->
+<div class="bg-card-light dark:bg-card-dark p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-[#32673b]">
+<div class="flex justify-between items-start mb-4">
+<div class="flex flex-col">
+<span class="text-xs uppercase tracking-wider font-bold text-gray-400 dark:text-[#92c99b] mb-1">Current Level</span>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">auto_stories</span>
+<span class="text-xl font-bold">Bookworm</span>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-xs uppercase tracking-wider font-bold text-gray-400 dark:text-[#92c99b] mb-1">Streak</span>
+<div class="flex items-center gap-1 text-orange-500">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">local_fire_department</span>
+<span class="text-xl font-bold">12</span>
+</div>
+</div>
+</div>
+<div class="relative pt-2">
+<div class="flex justify-between text-xs font-medium text-gray-500 dark:text-[#92c99b] mb-2">
+<span>350 XP</span>
+<span>500 XP</span>
+</div>
+<div class="h-3 w-full bg-gray-100 dark:bg-[#112214] rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 70%"></div>
+</div>
+<p class="text-right text-[10px] text-gray-400 dark:text-gray-500 mt-2 font-medium">150 XP to Level 6</p>
+</div>
+</div>
+</section>
+<!-- Today's Goal Section -->
+<section class="px-6 mb-10">
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-xl font-bold tracking-tight">Today's Goal</h2>
+<button class="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#1a331d]">
+<span class="material-symbols-outlined text-gray-400">more_horiz</span>
+</button>
+</div>
+<div class="bg-card-light dark:bg-card-dark p-1 rounded-2xl shadow-sm border border-gray-100 dark:border-[#32673b] flex flex-col gap-1">
+<div class="p-5 pb-2">
+<div class="flex items-center gap-4 mb-2">
+<div class="size-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary text-[24px]">timer</span>
+</div>
+<div>
+<h3 class="font-bold text-lg">Read 30 minutes</h3>
+<p class="text-sm text-gray-500 dark:text-[#92c99b]">0/30 mins tracked</p>
+</div>
+</div>
+</div>
+<button class="w-full bg-primary hover:bg-[#25d342] text-[#102213] font-bold text-base py-4 px-6 rounded-xl flex items-center justify-center gap-2 transition-colors">
+<span class="material-symbols-outlined">camera_alt</span>
+                Verify Reading
+            </button>
+</div>
+</section>
+<!-- Reading Now Carousel -->
+<section class="pl-6 mb-6">
+<div class="flex items-center justify-between pr-6 mb-4">
+<h2 class="text-xl font-bold tracking-tight">Reading Now</h2>
+<a class="text-sm font-semibold text-primary" href="#">See All</a>
+</div>
+<div class="flex gap-4 overflow-x-auto pb-8 pr-6 no-scrollbar snap-x snap-mandatory">
+<!-- Book Card 1 -->
+<div class="snap-start shrink-0 w-[140px] flex flex-col gap-3 group">
+<div class="relative w-full aspect-[2/3] rounded-xl overflow-hidden shadow-md group-hover:-translate-y-1 transition-transform duration-300">
+<div class="w-full h-full bg-cover bg-center" data-alt="Book cover abstract with warm colors" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCi1lCdkhPvF1Qyp22-XegxEtr0vrdA9WaQAMQ8sWel571KqQ-GZqEeMjFIhpAEOww1h9nWdFGcY7QJfm8Gv31JwUtjCe6VdjCiJx-yBf1sFsBf87hAqr3u5VHrMXMkDZ3GUxuaWEcAPOKwRPPhcgpfIc5xBTsovnP21u6HTxBTCC2dt-ACIIaPS2kTwE-WmEubKfcDWZGN0hf94vPzdHAOqTYVcNy30lEWomKwE0AW8o9C8SmcZ3SyBM1F8Xo7hGw77NTuTFMNiyDy');">
+</div>
+<!-- Progress Overlay -->
+<div class="absolute bottom-0 left-0 w-full h-1 bg-black/30 backdrop-blur-sm">
+<div class="h-full bg-primary w-[45%]"></div>
+</div>
+<div class="absolute top-2 right-2 bg-black/60 backdrop-blur-md rounded-md px-1.5 py-0.5">
+<p class="text-[10px] font-bold text-white">45%</p>
+</div>
+</div>
+<div>
+<h3 class="font-bold text-sm leading-tight truncate text-gray-900 dark:text-white">Atomic Habits</h3>
+<p class="text-xs text-gray-500 dark:text-[#92c99b] truncate">James Clear</p>
+</div>
+</div>
+<!-- Book Card 2 -->
+<div class="snap-start shrink-0 w-[140px] flex flex-col gap-3 group">
+<div class="relative w-full aspect-[2/3] rounded-xl overflow-hidden shadow-md group-hover:-translate-y-1 transition-transform duration-300">
+<div class="w-full h-full bg-cover bg-center" data-alt="Book cover of Dune showing desert landscape" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBdAchYyHnEajfrFtdyJdFome5zg2Ev4bl3gHsL71twAtZSVOxp68mOOTl8XFNrzSkwlOhYMTM-BvoGM4LzVOmQzjE3AwXVGllS3bcYpcNLnoqiRk_HA0d1XXLYUyseqx2mEiFHb4zHcTHQqhYktO6h0wq85mC5L6-ccEfltbY3rg7xzwqUe3c11qH9KHwWlMNJV6g17C1FlL5sv3-7wKc9gbH5lVYqeo99JNg9zVEQFlMs2Diy_m2o5N7QeBDz2iotdoiMBY5f_vij');">
+</div>
+<!-- Progress Overlay -->
+<div class="absolute bottom-0 left-0 w-full h-1 bg-black/30 backdrop-blur-sm">
+<div class="h-full bg-primary w-[12%]"></div>
+</div>
+<div class="absolute top-2 right-2 bg-black/60 backdrop-blur-md rounded-md px-1.5 py-0.5">
+<p class="text-[10px] font-bold text-white">12%</p>
+</div>
+</div>
+<div>
+<h3 class="font-bold text-sm leading-tight truncate text-gray-900 dark:text-white">Dune</h3>
+<p class="text-xs text-gray-500 dark:text-[#92c99b] truncate">Frank Herbert</p>
+</div>
+</div>
+<!-- Book Card 3 -->
+<div class="snap-start shrink-0 w-[140px] flex flex-col gap-3 group">
+<div class="relative w-full aspect-[2/3] rounded-xl overflow-hidden shadow-md group-hover:-translate-y-1 transition-transform duration-300">
+<div class="w-full h-full bg-cover bg-center" data-alt="Abstract colorful book cover" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDvqsTxIykVSP7XjBnusKMaZmPkfRMFoAUUFW9GPjaKZkNgb3N8W9m5Cc0qj88HfEyP8Z_BjdH4aD0y1D6ryT14q34JCn9E4AhV_3gRnyKK7ss5GY2gd649F6VBNVKVCuHt872YhU51jK_5fDT6n5EFnOonNonUcdxInC6_yVF_dG1qG7mNXed7vF22QKq7auhkgklgO0ByPXMB53Cjw7O5xxDC5dwARk993fSYoFc7ZfiF6KZPZtajIvD7x7DjXcz6ywg6hMJTV8LU');">
+</div>
+<!-- Progress Overlay -->
+<div class="absolute bottom-0 left-0 w-full h-1 bg-black/30 backdrop-blur-sm">
+<div class="h-full bg-primary w-[88%]"></div>
+</div>
+<div class="absolute top-2 right-2 bg-black/60 backdrop-blur-md rounded-md px-1.5 py-0.5">
+<p class="text-[10px] font-bold text-white">88%</p>
+</div>
+</div>
+<div>
+<h3 class="font-bold text-sm leading-tight truncate text-gray-900 dark:text-white">Design of Everyday Things</h3>
+<p class="text-xs text-gray-500 dark:text-[#92c99b] truncate">Don Norman</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Navigation -->
+<div class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50">
+<div class="bg-[#1a1a1a]/90 dark:bg-[#1a331d]/90 backdrop-blur-xl border border-white/10 dark:border-[#32673b] p-2 rounded-full shadow-2xl flex justify-between items-center px-6">
+<button class="flex flex-col items-center justify-center size-10 text-primary">
+<span class="material-symbols-outlined text-[26px]" style="font-variation-settings: 'FILL' 1">home</span>
+</button>
+<button class="flex flex-col items-center justify-center size-10 text-gray-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[26px]">menu_book</span>
+</button>
+<button class="flex flex-col items-center justify-center size-12 bg-primary rounded-full -mt-8 border-4 border-[#1a1a1a] dark:border-[#102213] text-[#102213] shadow-lg shadow-primary/30">
+<span class="material-symbols-outlined text-[28px]">add</span>
+</button>
+<button class="flex flex-col items-center justify-center size-10 text-gray-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[26px]">group</span>
+</button>
+<button class="flex flex-col items-center justify-center size-10 text-gray-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[26px]">person</span>
+</button>
+</div>
+</div>
+</body></html>
