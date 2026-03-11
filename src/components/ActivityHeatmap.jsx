@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
-export default function ActivityHeatmap({ createdAt }) {
+export default function ActivityHeatmap({ createdAt, onGoToLibrary }) {
     const [heatmapData, setHeatmapData] = useState({});
     const [selectedDate, setSelectedDate] = useState(null);
     const [dailySessions, setDailySessions] = useState([]);
@@ -165,7 +165,7 @@ export default function ActivityHeatmap({ createdAt }) {
                             </button>
                         </div>
 
-                        <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+                        <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
                             {dailySessions.map((session, idx) => (
                                 <div key={idx} className="flex gap-4 p-3 bg-stone-50 dark:bg-black/20 rounded-xl border border-stone-100 dark:border-white/5">
                                     <div className="size-12 shrink-0 bg-stone-100 dark:bg-[#0f1a12] rounded-lg overflow-hidden border border-stone-200 dark:border-white/10">
@@ -184,7 +184,6 @@ export default function ActivityHeatmap({ createdAt }) {
                                             <span>•</span>
                                             <span>+{session.rewards?.xp || 0} XP</span>
                                         </div>
-                                        {/* ✅ 버그 수정: 문자열 리터럴이 아닌 JSX 표현식으로 렌더링 */}
                                         {session.note && (
                                             <p className="text-xs text-gray-400 mt-2 italic bg-white/5 dark:bg-black/20 p-2 rounded border-l-2 border-[#2bee4b]/30">
                                                 {session.note}
@@ -194,6 +193,17 @@ export default function ActivityHeatmap({ createdAt }) {
                                 </div>
                             ))}
                         </div>
+
+                        {/* 서고 바로가기 */}
+                        {onGoToLibrary && (
+                            <button
+                                onClick={() => { setIsModalOpen(false); onGoToLibrary(); }}
+                                className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-[#2bee4b]/30 text-[#2bee4b] text-xs font-bold hover:bg-[#2bee4b]/5 transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-sm">menu_book</span>
+                                서고에서 전체 기록 보기
+                            </button>
+                        )}
                     </div>
                 </div>
             )}

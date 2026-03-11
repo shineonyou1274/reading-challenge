@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { collection, query, orderBy, limit, onSnapshot, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { collection, query, orderBy, limit, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { RPG_CONFIG } from '../utils/rpg';
 import EmpireWarMap from './EmpireWarMap';
 import RankingBoard from './RankingBoard';
 import ScholarBanner from './ScholarBanner';
 import EmpireBattle from './EmpireBattle';
-import GoldShop from './GoldShop';
 
 export default function Community({ darkMode, stats, onShopPurchase }) {
     const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('latest'); // 'latest', 'empire', 'global'
+    const [activeTab, setActiveTab] = useState('empire');
     const [currentUserEmpire, setCurrentUserEmpire] = useState(null);
+    const [visibleCount, setVisibleCount] = useState(10);
+    const [expandedNotes, setExpandedNotes] = useState({});
 
     // 현재 유저의 제국 정보 가져오기
     useEffect(() => {
@@ -28,15 +29,15 @@ export default function Community({ darkMode, stats, onShopPurchase }) {
     useEffect(() => {
         if (!auth.currentUser) {
             setActivities([
-                { id: '1', userName: '실비아', userTitle: '왕실 기록관', bookTitle: '지혜의 서', elapsedTime: 5400, timestamp: { seconds: Date.now() / 1000 - 300 }, bookImage: null },
-                { id: '2', userName: '카이', userTitle: '입문 학자', bookTitle: '디지털 요새', elapsedTime: 1800, timestamp: { seconds: Date.now() / 1000 - 3600 }, bookImage: null },
+                { id: '1', userName: '실비아', userTitle: '왕실 기록관', bookTitle: '지혜의 서', elapsedTime: 5400, note: '지혜란 경험의 축적이다.', timestamp: { seconds: Date.now() / 1000 - 300 }, bookImage: null },
+                { id: '2', userName: '카이', userTitle: '입문 학자', bookTitle: '디지털 요새', elapsedTime: 1800, note: '', timestamp: { seconds: Date.now() / 1000 - 3600 }, bookImage: null },
             ]);
             setLoading(false);
             return;
         }
 
         const feedRef = collection(db, 'public_feed');
-        const q = query(feedRef, orderBy('timestamp', 'desc'), limit(20));
+        const q = query(feedRef, orderBy('timestamp', 'desc'), limit(50));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setActivities(data);
@@ -45,7 +46,6 @@ export default function Community({ darkMode, stats, onShopPurchase }) {
         return () => unsubscribe();
     }, []);
 
-    // Time ago helper
     const timeAgo = (timestamp) => {
         if (!timestamp) return '방금 전';
         const seconds = Math.floor((new Date() - new Date(timestamp.seconds * 1000)) / 1000);
@@ -57,19 +57,24 @@ export default function Community({ darkMode, stats, onShopPurchase }) {
         return "방금 전";
     };
 
+    const toggleNote = (id) => {
+        setExpandedNotes(prev => ({ ...prev, [id]: !prev[id] }));
+    };
+
     const tabs = [
-        { id: 'latest', label: '최신 기록', icon: 'schedule' },
         { id: 'empire', label: '제국 전쟁', icon: 'flag' },
+        { id: 'latest', label: '독서 기록', icon: 'schedule' },
         { id: 'global', label: '명예의 전당', icon: 'military_tech' },
-        { id: 'shop',   label: '황실 상회', icon: 'storefront' },
     ];
+
+    const visibleActivities = activities.filter(act => !act.isChat).slice(0, visibleCount);
+    const hasMore = activities.filter(act => !act.isChat).length > visibleCount;
 
     return (
         <div className="min-h-screen bg-[#F9F8F4] dark:bg-[#102213] text-slate-800 dark:text-gray-200 font-sans pb-28 transition-colors duration-300">
             {/* Header */}
             <header className="sticky top-0 z-40 bg-[#F9F8F4]/95 dark:bg-[#102213]/95 backdrop-blur-md pt-6 pb-2 px-6 flex items-center justify-between border-b border-stone-200/50 dark:border-white/5 transition-colors">
                 <h2 className="text-slate-900 dark:text-white text-2xl font-bold leading-tight tracking-tight flex-1">독서 피드</h2>
-                {/* 제국 뱃지 표시 */}
                 {currentUserEmpire && (
                     <div
                         className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border"
@@ -105,14 +110,10 @@ export default function Community({ darkMode, stats, onShopPurchase }) {
                 </div>
             </div>
 
-            {/* Main Feed Content */}
+            {/* Main Content */}
             <main className="flex flex-col gap-6 px-4 py-6 max-w-lg mx-auto">
-                {activeTab === 'shop' ? (
-                    <GoldShop stats={stats} onPurchase={onShopPurchase} />
-                ) : activeTab === 'empire' ? (
-                    // 제국 전쟁 탭: 이번 주 대결 + 제국별 랭킹
+                {activeTab === 'empire' ? (
                     <div className="space-y-4">
-                        {/* 이번 주 제국 대결 */}
                         <EmpireBattle />
                         <div className="mb-4">
                             <EmpireWarMap />
@@ -120,12 +121,9 @@ export default function Community({ darkMode, stats, onShopPurchase }) {
                         <RankingBoard type="empire" empireFilter={currentUserEmpire} />
                     </div>
                 ) : activeTab === 'global' ? (
-                    // 명예의 전당: 전체 통합 랭킹
                     <RankingBoard type="global" empireFilter={null} />
                 ) : (
-                    // 최신 기록 피드
                     <>
-                        {/* 이주의 학자 배너 */}
                         <ScholarBanner />
                         {loading ? (
                             <div className="space-y-3">
@@ -146,72 +144,93 @@ export default function Community({ darkMode, stats, onShopPurchase }) {
                                 <p className="text-sm mt-2">첫 독서 기록을 남겨보세요!</p>
                             </div>
                         ) : (
-                            activities.filter(act => !act.isChat).map((act) => (
-                                <article
-                                    key={act.id}
-                                    className="rounded-2xl bg-white dark:bg-[#1a331d] border border-stone-100 dark:border-[#32673b] overflow-hidden transition-all hover:border-stone-200 dark:hover:border-[#2bee4b]/40 shadow-sm"
-                                >
-                                    <div className="flex items-start gap-3 p-4">
-                                        {/* 책 표지 썸네일 */}
-                                        <div className="w-11 h-14 shrink-0 rounded-xl overflow-hidden bg-stone-100 dark:bg-black/40 border border-stone-200 dark:border-white/5 shadow-sm">
-                                            {act.bookImage ? (
-                                                <img src={act.bookImage} alt="" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <span className="material-symbols-outlined text-stone-300 dark:text-gray-600 text-xl">book_2</span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* 메인 콘텐츠 */}
-                                        <div className="flex-1 min-w-0">
-                                            {/* 이름 + 시간 */}
-                                            <div className="flex items-center justify-between gap-2 mb-0.5">
-                                                <div className="flex items-center gap-1.5 min-w-0">
-                                                    <span className="font-bold text-sm text-slate-900 dark:text-white truncate">{act.userName || '알 수 없음'}</span>
-                                                    <span className="text-[9px] bg-stone-100 dark:bg-black/30 text-slate-500 dark:text-gray-500 px-1.5 py-0.5 rounded-full font-bold uppercase shrink-0">{act.userTitle || '학자'}</span>
-                                                </div>
-                                                <span className="text-[10px] text-slate-400 dark:text-gray-600 shrink-0">{timeAgo(act.timestamp)}</span>
+                            <>
+                                {visibleActivities.map((act) => (
+                                    <article
+                                        key={act.id}
+                                        className="rounded-2xl bg-white dark:bg-[#1a331d] border border-stone-100 dark:border-[#32673b] overflow-hidden transition-all hover:border-stone-200 dark:hover:border-[#2bee4b]/40 shadow-sm"
+                                    >
+                                        <div className="flex items-start gap-3 p-4">
+                                            {/* 책 표지 */}
+                                            <div className="w-11 h-14 shrink-0 rounded-xl overflow-hidden bg-stone-100 dark:bg-black/40 border border-stone-200 dark:border-white/5 shadow-sm">
+                                                {act.bookImage ? (
+                                                    <img src={act.bookImage} alt="" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <span className="material-symbols-outlined text-stone-300 dark:text-gray-600 text-xl">book_2</span>
+                                                    </div>
+                                                )}
                                             </div>
 
-                                            {/* 책 제목 */}
-                                            {act.bookTitle && (
-                                                <div className="flex items-center gap-1 mb-1">
-                                                    <span className="material-symbols-outlined text-[#057a1b] dark:text-[#2bee4b] text-xs">menu_book</span>
-                                                    <span className="text-xs font-bold text-[#057a1b] dark:text-[#2bee4b] truncate">{act.bookTitle}</span>
+                                            <div className="flex-1 min-w-0">
+                                                {/* 이름 + 시간 */}
+                                                <div className="flex items-center justify-between gap-2 mb-0.5">
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        <span className="font-bold text-sm text-slate-900 dark:text-white truncate">{act.userName || '알 수 없음'}</span>
+                                                        <span className="text-[9px] bg-stone-100 dark:bg-black/30 text-slate-500 dark:text-gray-500 px-1.5 py-0.5 rounded-full font-bold uppercase shrink-0">{act.userTitle || '학자'}</span>
+                                                    </div>
+                                                    <span className="text-[10px] text-slate-400 dark:text-gray-600 shrink-0">{timeAgo(act.timestamp)}</span>
                                                 </div>
-                                            )}
 
-                                            {/* 독서 메모 */}
-                                            {act.note && (
-                                                <p className="text-xs text-slate-500 dark:text-gray-400 italic line-clamp-2 mb-1.5 pl-2 border-l-2 border-[#2bee4b]/30">
+                                                {/* 책 제목 */}
+                                                {act.bookTitle && (
+                                                    <div className="flex items-center gap-1 mb-1">
+                                                        <span className="material-symbols-outlined text-[#057a1b] dark:text-[#2bee4b] text-xs">menu_book</span>
+                                                        <span className="text-xs font-bold text-[#057a1b] dark:text-[#2bee4b] truncate">{act.bookTitle}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* 통계 */}
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#057a1b] dark:text-[#2bee4b] bg-[#2bee4b]/10 px-2 py-0.5 rounded-full">
+                                                        <span className="material-symbols-outlined text-xs" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span>
+                                                        {Math.floor((act.elapsedTime || 0) / 60)}분
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-400 dark:text-gray-500 font-bold">
+                                                        +{act.rewards?.xp || Math.floor((act.elapsedTime || 0) / 60) * 10} XP
+                                                    </span>
+
+                                                    {/* 메모 아코디언 토글 */}
+                                                    {act.note && (
+                                                        <button
+                                                            onClick={() => toggleNote(act.id)}
+                                                            className="ml-auto flex items-center gap-0.5 text-[10px] text-slate-400 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300 transition-colors"
+                                                        >
+                                                            <span className="material-symbols-outlined text-xs">
+                                                                {expandedNotes[act.id] ? 'expand_less' : 'expand_more'}
+                                                            </span>
+                                                            메모
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* 메모 아코디언 영역 */}
+                                        {act.note && expandedNotes[act.id] && (
+                                            <div className="px-4 pb-4">
+                                                <p className="text-xs text-slate-500 dark:text-gray-400 italic bg-stone-50 dark:bg-black/20 p-3 rounded-xl border-l-2 border-[#2bee4b]/40">
                                                     "{act.note}"
                                                 </p>
-                                            )}
-
-                                            {/* 통계 */}
-                                            <div className="flex items-center gap-2 mt-1.5">
-                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#057a1b] dark:text-[#2bee4b] bg-[#2bee4b]/10 px-2 py-0.5 rounded-full">
-                                                    <span className="material-symbols-outlined text-xs" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span>
-                                                    {Math.floor((act.elapsedTime || 0) / 60)}분
-                                                </span>
-                                                <span className="text-[10px] text-slate-400 dark:text-gray-500 font-bold">
-                                                    +{act.rewards?.xp || Math.floor((act.elapsedTime || 0) / 60) * 10} XP
-                                                </span>
                                             </div>
-                                        </div>
-                                    </div>
-                                </article>
-                            ))
-                        )}
+                                        )}
+                                    </article>
+                                ))}
 
-                        {/* Bottom indicator */}
-                        {!loading && activities.length > 0 && (
-                            <div className="flex items-center justify-center pt-4 pb-8">
-                                <div className="h-1.5 w-1.5 bg-slate-300 dark:bg-gray-700 rounded-full animate-bounce"></div>
-                                <div className="h-1.5 w-1.5 bg-slate-300 dark:bg-gray-700 rounded-full animate-bounce mx-1 delay-100"></div>
-                                <div className="h-1.5 w-1.5 bg-slate-300 dark:bg-gray-700 rounded-full animate-bounce delay-200"></div>
-                            </div>
+                                {/* 더 보기 버튼 */}
+                                {hasMore && (
+                                    <button
+                                        onClick={() => setVisibleCount(c => c + 10)}
+                                        className="w-full py-3 rounded-2xl border border-stone-200 dark:border-white/10 text-sm font-bold text-slate-500 dark:text-gray-400 hover:bg-stone-50 dark:hover:bg-white/5 transition-colors"
+                                    >
+                                        더 보기 ({activities.filter(a => !a.isChat).length - visibleCount}개 남음)
+                                    </button>
+                                )}
+
+                                {!hasMore && activities.length > 0 && (
+                                    <p className="text-center text-[10px] text-slate-300 dark:text-gray-700 font-bold uppercase tracking-widest pb-4">— 모든 기록을 불러왔습니다 —</p>
+                                )}
+                            </>
                         )}
                     </>
                 )}

@@ -11,7 +11,7 @@ import DailyQuests from './DailyQuests';
 import FocusTimer from './FocusTimer';
 
 
-export default function QuestBoard({ stats, onSaveSession }) {
+export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
     const {
         isRunning,
         elapsedTime,
@@ -254,7 +254,7 @@ export default function QuestBoard({ stats, onSaveSession }) {
             </section>
 
             {/* ActivityHeatmap — 최근 책 아래 */}
-            <ActivityHeatmap createdAt={stats?.createdAt} />
+            <ActivityHeatmap createdAt={stats?.createdAt} onGoToLibrary={onGoToLibrary} />
 
             {/* 📋 오늘의 임무 (데일리 퀘스트) */}
             <section className="px-4">

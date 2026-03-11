@@ -14,6 +14,7 @@ import { RPG_CONFIG, getLevelFromXP, getTitleForLevel } from './utils/rpg';
 import GuideModal from './components/GuideModal';
 import GamePopups from './components/GamePopups';
 import AchievementsModal from './components/AchievementsModal';
+import GoldShop from './components/GoldShop';
 import AnnouncementBanner from './components/AnnouncementBanner';
 import { checkNewAchievements, getRandomChestReward } from './utils/achievements';
 import { soundManager } from './utils/soundManager';
@@ -674,7 +675,7 @@ export default function App() {
                 {/* 📢 공지사항 배너 (모든 탭에서 표시) */}
                 {user && <AnnouncementBanner />}
 
-                {view === 'dashboard' && <QuestBoard stats={stats} onSaveSession={handleSaveSession} />}
+                {view === 'dashboard' && <QuestBoard stats={stats} onSaveSession={handleSaveSession} onGoToLibrary={() => setView('library')} />}
                 {view === 'library' && <RoyalLibrary />}
                 {view === 'community' && <Community darkMode={darkMode} stats={stats} onShopPurchase={handleShopPurchase} />}
                 {view === 'profile' && (
@@ -791,6 +792,11 @@ export default function App() {
                                 </button>
                             </div>
                         )}
+
+                        {/* 황실 상회 */}
+                        <div className="mb-6">
+                            <GoldShop stats={stats} onPurchase={handleShopPurchase} />
+                        </div>
 
                         <div className="mb-8 space-x-4">
                             <button
