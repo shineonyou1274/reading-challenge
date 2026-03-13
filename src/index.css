@@ -5,16 +5,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 라이트/다크 모드 기본값 */
 :root {
+  background-color: #F9F8F4;
+  color: #0f172a;
+}
+
+.dark {
   background-color: #102213;
+  color: #ffffff;
 }
 
 body {
   margin: 0;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  color: #ffffff;
-  background-color: #102213;
   -webkit-font-smoothing: antialiased;
+  /* color/background는 :root 및 .dark에서 관리 */
 }
 
 h1,

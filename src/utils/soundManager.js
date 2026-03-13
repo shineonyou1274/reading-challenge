@@ -23,6 +23,15 @@ class SoundManager {
         this.sfxGain.connect(this.ctx.destination);
     }
 
+    // BGM 미리 로드 (앱 시작 시 호출)
+    preload() {
+        this._bgmFiles.forEach(f => {
+            const a = new Audio();
+            a.src = f;
+            a.preload = 'auto';
+        });
+    }
+
     // ─── BGM: MP3 랜덤 루프 ──────────────────────────────────────────
     startBgm() {
         if (this.isBgmPlaying || !this.bgmEnabled) return;
@@ -30,7 +39,7 @@ class SoundManager {
             const file = this._bgmFiles[Math.floor(Math.random() * this._bgmFiles.length)];
             this.bgmAudio = new Audio(file);
             this.bgmAudio.loop = true;
-            this.bgmAudio.volume = 0.22;
+            this.bgmAudio.volume = 0.28;
             this.bgmAudio.play().catch(() => { });
             this.isBgmPlaying = true;
         } catch (e) {

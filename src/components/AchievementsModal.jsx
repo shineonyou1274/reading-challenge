@@ -1,11 +1,12 @@
 import { ACHIEVEMENTS, ACHIEVEMENT_CATEGORIES } from '../utils/achievements';
+import { AttendanceCompact } from './BookRoulette';
 
 /**
  * 업적 컬렉션 모달
  * - 달성/미달성 업적을 카테고리별로 표시
  * - earnedIds: string[] — 유저가 달성한 업적 ID 목록
  */
-export default function AchievementsModal({ isOpen, onClose, earnedIds = [] }) {
+export default function AchievementsModal({ isOpen, onClose, earnedIds = [], stats = {} }) {
     if (!isOpen) return null;
 
     const categories = Object.entries(ACHIEVEMENT_CATEGORIES);
@@ -53,6 +54,18 @@ export default function AchievementsModal({ isOpen, onClose, earnedIds = [] }) {
 
                 {/* Achievement List — 카테고리별 3열 그리드 */}
                 <div className="overflow-y-auto flex-1 p-4 space-y-6">
+                    {/* 출석 보상 섹션 */}
+                    <section>
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="material-symbols-outlined text-slate-400 dark:text-gray-500 text-sm"
+                                style={{ fontVariationSettings: "'FILL' 1" }}>event_available</span>
+                            <h3 className="text-xs font-black text-slate-500 dark:text-gray-400 uppercase tracking-widest">
+                                출석 보상
+                            </h3>
+                        </div>
+                        <AttendanceCompact stats={stats} />
+                    </section>
+
                     {categories.map(([catKey, cat]) => {
                         const catAchievements = ACHIEVEMENTS.filter(a => a.category === catKey);
                         const catEarned = catAchievements.filter(a => earnedIds.includes(a.id)).length;

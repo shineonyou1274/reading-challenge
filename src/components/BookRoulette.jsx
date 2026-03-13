@@ -23,9 +23,28 @@ const ATTENDANCE_REWARDS = [
     { day: 7, xp: 500, gold: 100, icon: '👑', label: '7일 완주!', color: '#fbbf24', isSpecial: true },
 ];
 
+const STREAK_MILESTONES = [
+    { day: 14, xpBonus: 300, goldBonus: 50, label: '2주 연속!', icon: '🏅' },
+    { day: 21, xpBonus: 600, goldBonus: 100, label: '3주 연속!', icon: '🏆' },
+    { day: 30, xpBonus: 1000, goldBonus: 200, label: '한 달 연속!', icon: '👑' },
+];
+
 function getRewardForStreak(streak) {
     const idx = ((streak - 1) % 7);
-    return ATTENDANCE_REWARDS[idx];
+    const baseReward = ATTENDANCE_REWARDS[idx];
+    const milestone = STREAK_MILESTONES.find(m => m.day === streak);
+    if (milestone) {
+        return {
+            ...baseReward,
+            xp: baseReward.xp + milestone.xpBonus,
+            gold: baseReward.gold + milestone.goldBonus,
+            label: milestone.label,
+            icon: milestone.icon,
+            color: '#fbbf24',
+            isMilestone: true,
+        };
+    }
+    return baseReward;
 }
 
 function getTodayDateKey() {

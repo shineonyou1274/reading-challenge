@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db } from './firebase';
 import { signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, increment, addDoc, collection, serverTimestamp, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, getDocs, setDoc, updateDoc, increment, addDoc, collection, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { useUserStats } from './hooks/useUserStats';
 import QuestBoard from './components/QuestBoard';
 import Onboarding from './components/Onboarding';
@@ -280,6 +280,12 @@ export default function App() {
         }
     }, [darkMode]);
 
+    // BGM 미리 로드
+    useEffect(() => { soundManager.preload?.(); }, []);
+
+    // 뷰 전환 시 스크롤 최상단으로
+    useEffect(() => { window.scrollTo(0, 0); }, [view]);
+
     useEffect(() => {
         if (isFirebaseReady) {
             try {
@@ -533,7 +539,15 @@ export default function App() {
                     </div>
                     <div className="flex gap-2">
                         <button
-                            onClick={() => { updateServiceWorker(true).then(() => window.location.reload()); }}
+                            onClick={() => {
+                                try { updateServiceWorker(true); } catch (e) { console.warn('SW update failed:', e); }
+                                // 캐시 무효화 후 강제 리로드
+                                if ('caches' in window) {
+                                    caches.keys().then(names => Promise.all(names.map(n => caches.delete(n)))).finally(() => window.location.reload(true));
+                                } else {
+                                    window.location.reload(true);
+                                }
+                            }}
                             className="bg-[#102213] text-[#2bee4b] text-xs font-black px-4 py-1.5 rounded-lg uppercase tracking-widest"
                         >업데이트</button>
                         <button onClick={() => setShowUpdateBanner(false)} className="text-[#102213]/60 text-xs px-2">✕</button>
@@ -949,6 +963,7 @@ export default function App() {
                 isOpen={showAchievements}
                 onClose={() => setShowAchievements(false)}
                 earnedIds={stats?.achievements || []}
+                stats={stats}
             />
 
             {/* 🎮 게임 이벤트 팝업 큐 (레벨업, 스트릭, 보물상자, 업적) */}

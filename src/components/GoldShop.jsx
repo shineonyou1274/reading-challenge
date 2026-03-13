@@ -48,7 +48,7 @@ export default function GoldShop({ stats, onPurchase }) {
             </div>
 
             {/* 아이템 그리드 */}
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-2 gap-3">
                 {ITEMS.map((item) => {
                     const owned = inventory[item.id] || 0;
                     const canBuy = gold >= item.price;
@@ -57,40 +57,40 @@ export default function GoldShop({ stats, onPurchase }) {
                     return (
                         <div
                             key={item.id}
-                            className={`bg-[#1a331d] border rounded-2xl p-4 flex items-center gap-4 transition-all ${
+                            className={`bg-[#1a331d] border rounded-2xl p-3 flex flex-col items-center gap-2 transition-all ${
                                 canBuy ? 'border-[#32673b]' : 'border-[#32673b]/40 opacity-60'
                             }`}
                         >
                             {/* 아이콘 */}
-                            <div className="w-12 h-12 shrink-0 rounded-xl bg-black/40 flex items-center justify-center text-2xl border border-white/5">
+                            <div className="w-14 h-14 rounded-xl bg-black/40 flex items-center justify-center text-3xl border border-white/5 relative">
                                 {item.icon}
-                            </div>
-
-                            {/* 정보 */}
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                    <span className="font-bold text-white text-sm">{item.name}</span>
-                                    <span
-                                        className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                                        style={{ color: badge.color, backgroundColor: badge.color + '20' }}
-                                    >
-                                        {badge.label}
-                                    </span>
-                                </div>
-                                <p className="text-[11px] text-gray-400 leading-snug">{item.desc}</p>
                                 {owned > 0 && item.type === 'consumable' && (
-                                    <p className="text-[10px] text-[#2bee4b] mt-0.5">보유: {owned}개</p>
+                                    <span className="absolute -top-1 -right-1 bg-[#2bee4b] text-[#102213] text-[8px] font-black px-1.5 py-0.5 rounded-full border border-[#102213]">×{owned}</span>
                                 )}
                                 {item.type === 'permanent' && owned > 0 && (
-                                    <p className="text-[10px] text-purple-400 mt-0.5">✅ 보유 중</p>
+                                    <span className="absolute -top-1 -right-1 text-xs">✅</span>
                                 )}
                             </div>
+
+                            {/* 이름 + 희귀도 */}
+                            <div className="text-center">
+                                <span className="font-bold text-white text-xs block">{item.name}</span>
+                                <span
+                                    className="text-[9px] font-bold px-1.5 py-0.5 rounded-full inline-block mt-0.5"
+                                    style={{ color: badge.color, backgroundColor: badge.color + '20' }}
+                                >
+                                    {badge.label}
+                                </span>
+                            </div>
+
+                            {/* 설명 */}
+                            <p className="text-[10px] text-gray-400 leading-snug text-center line-clamp-2">{item.desc}</p>
 
                             {/* 구매 버튼 */}
                             <button
                                 onClick={() => handleBuy(item)}
                                 disabled={!canBuy || (item.type === 'permanent' && owned > 0)}
-                                className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl font-black text-[11px] transition-all active:scale-95 ${
+                                className={`w-full mt-auto flex items-center justify-center gap-1 px-3 py-2 rounded-xl font-black text-[11px] transition-all active:scale-95 ${
                                     item.type === 'permanent' && owned > 0
                                         ? 'bg-purple-500/20 text-purple-400 cursor-default'
                                         : canBuy
@@ -102,7 +102,7 @@ export default function GoldShop({ stats, onPurchase }) {
                                     <span>획득됨</span>
                                 ) : (
                                     <>
-                                        <span className="text-base leading-none">💰</span>
+                                        <span>💰</span>
                                         <span>{item.price.toLocaleString()}</span>
                                     </>
                                 )}

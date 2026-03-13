@@ -5,7 +5,7 @@ import { useReadingSession } from '../hooks/useReadingSession';
 import { searchBook } from '../utils/bookApi';
 import { RPG_CONFIG, getTitleForLevel, getRankForLevel } from '../utils/rpg';
 import ActivityHeatmap from './ActivityHeatmap';
-import { AttendanceCompact } from './BookRoulette';
+
 import { getDailyQuote } from '../utils/quotes';
 import DailyQuests from './DailyQuests';
 import FocusTimer from './FocusTimer';
@@ -40,6 +40,8 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
     });
     const [todayTotalSeconds, setTodayTotalSeconds] = useState(0);
     const [saveToast, setSaveToast] = useState(null); // { xp, gold } | null
+    const [timerMode, setTimerMode] = useState('free'); // 'free' | 'goal'
+    const [goalMinutes, setGoalMinutes] = useState(25);
 
     // Books Search State
     const [searchResults, setSearchResults] = useState([]);
@@ -126,8 +128,9 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
 
     const progressPercent = stats?.xpLimit ? (stats.currentXp / stats.xpLimit) * 100 : 70;
 
-    // 집중 모드 타이머 오버레이
-    const showFocusTimer = isRunning && mode?.id === 'focus';
+    // 타이머 오버레이: 독서 시작 시 항상 표시
+    const showFocusTimer = isRunning;
+    const goalSeconds = timerMode === 'goal' ? goalMinutes * 60 : 0;
 
     return (
         <>
@@ -138,6 +141,7 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                 bookTitle={bookTitle}
                 mode={mode}
                 isRunning={isRunning}
+                goalSeconds={goalSeconds}
                 onPause={() => isRunning ? pauseSession() : startSession(mode)}
                 onStop={() => { pauseSession(); setIsModalOpen(true); }}
             />
@@ -159,46 +163,62 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                 );
             })()}
 
-            {/* 🎲 독서량 카드 + 룰렛 — 2열 그리드 */}
+            {/* 📖 독서 타이머 카드 */}
             <section className="px-4">
-                <div className="grid grid-cols-2 gap-3">
-                    {/* 왼쪽: 오늘의 독서량 + 시작 버튼 */}
-                    <div className="bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-3xl p-4 flex flex-col justify-between shadow-sm min-h-[180px]">
+                <div className="bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-3xl p-5 shadow-sm">
+                    {/* 상단: 오늘 독서량 + 스트릭 */}
+                    <div className="flex items-center justify-between mb-4">
                         <div>
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-[#92c99b] mb-1">오늘의 독서</p>
+                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-[#92c99b]">오늘의 독서</p>
                             <p className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">{formatTotalTime(todayTotalSeconds)}</p>
-                            <div className="flex items-center gap-1 mt-1">
-                                <span className="material-symbols-outlined text-xs text-orange-400" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
-                                <span className="text-[10px] text-orange-400 font-bold">{stats?.streak || 0}일 연속</span>
-                            </div>
                         </div>
-                        {!isRunning ? (
-                            <button
-                                onClick={() => startSession(mode)}
-                                className="w-full bg-[#2bee4b] text-[#102213] font-black text-[10px] py-3 rounded-xl flex items-center justify-center gap-1 uppercase tracking-widest shadow-[0_4px_12px_rgba(43,238,75,0.35)] active:scale-95 transition-all mt-3"
-                            >
-                                <span className="material-symbols-outlined text-sm">play_arrow</span>
-                                독서 시작
-                            </button>
-                        ) : (
-                            <div className="mt-3 space-y-2">
-                                <div className="bg-stone-50 dark:bg-black/40 rounded-xl py-2 text-center border border-stone-100 dark:border-white/5">
-                                    <span className="text-lg font-mono font-bold text-[#057a1b] dark:text-[#2bee4b]">{formatTime(elapsedTime)}</span>
-                                </div>
-                                <button
-                                    onClick={() => { pauseSession(); setIsModalOpen(true); }}
-                                    className="w-full bg-[#2bee4b] text-[#102213] font-black text-[10px] py-2.5 rounded-xl flex items-center justify-center gap-1 uppercase tracking-widest active:scale-95 transition-all"
-                                >
-                                    <span className="material-symbols-outlined text-sm">stop_circle</span>
-                                    완료 기록
-                                </button>
-                            </div>
-                        )}
+                        <div className="flex items-center gap-1 bg-orange-50 dark:bg-orange-500/10 px-3 py-1.5 rounded-full">
+                            <span className="material-symbols-outlined text-sm text-orange-400" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
+                            <span className="text-sm text-orange-400 font-black">{stats?.streak || 0}일</span>
+                        </div>
                     </div>
 
-                    {/* 오른쪽: 출석 보상 (컴팩트 버전) */}
-                    <AttendanceCompact stats={stats} />
+                    {/* 타이머 모드 선택 */}
+                    <div className="flex gap-2 mb-4">
+                        <button
+                            onClick={() => setTimerMode('free')}
+                            className={`flex-1 py-2 rounded-xl text-xs font-black transition-all ${timerMode === 'free' ? 'bg-[#2bee4b] text-[#102213]' : 'bg-stone-100 dark:bg-black/30 text-slate-500 dark:text-gray-400'}`}
+                        >
+                            ▶ 자유 기록
+                        </button>
+                        <button
+                            onClick={() => setTimerMode('goal')}
+                            className={`flex-1 py-2 rounded-xl text-xs font-black transition-all ${timerMode === 'goal' ? 'bg-[#2bee4b] text-[#102213]' : 'bg-stone-100 dark:bg-black/30 text-slate-500 dark:text-gray-400'}`}
+                        >
+                            🍅 목표 설정
+                        </button>
+                    </div>
+
+                    {/* 목표 시간 선택 (goal 모드일 때) */}
+                    {timerMode === 'goal' && (
+                        <div className="flex gap-2 mb-4 flex-wrap">
+                            {[15, 25, 30, 45, 60].map(min => (
+                                <button
+                                    key={min}
+                                    onClick={() => setGoalMinutes(min)}
+                                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${goalMinutes === min ? 'bg-slate-800 dark:bg-white text-white dark:text-[#102213]' : 'bg-stone-100 dark:bg-black/30 text-slate-500 dark:text-gray-400'}`}
+                                >
+                                    {min}분
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* 시작 버튼 */}
+                    <button
+                        onClick={() => startSession(mode)}
+                        className="w-full bg-[#2bee4b] text-[#102213] font-black py-3.5 rounded-2xl flex items-center justify-center gap-2 text-sm uppercase tracking-widest shadow-[0_4px_16px_rgba(43,238,75,0.3)] active:scale-[0.98] transition-all"
+                    >
+                        <span className="material-symbols-outlined">play_arrow</span>
+                        {timerMode === 'goal' ? `${goalMinutes}분 독서 시작` : '독서 시작'}
+                    </button>
                 </div>
+
             </section>
 
             {/* Reading Now Carousel (Real Data) */}
@@ -266,9 +286,16 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
             {
                 isModalOpen && (
                     <div className="fixed inset-0 bg-stone-900/40 dark:bg-[#0a150c]/90 flex items-center justify-center p-4 z-[200] backdrop-blur-md">
-                        <div className="bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-[32px] p-8 max-w-sm w-full shadow-2xl animate-book max-h-[90vh] overflow-y-auto">
-                            <div className="w-16 h-1 w-full bg-[#2bee4b]/20 rounded-full mb-6 mx-auto"></div>
-                            <h2 className="text-xl font-bold text-center mb-6 text-slate-900 dark:text-white tracking-tight">지식 기록</h2>
+                        <div className="bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-[32px] p-6 max-w-sm w-full shadow-2xl animate-book max-h-[90vh] overflow-y-auto relative">
+                            {/* X 닫기 버튼 */}
+                            <button
+                                onClick={() => { setIsModalOpen(false); }}
+                                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-stone-100 dark:bg-white/10 flex items-center justify-center hover:bg-stone-200 dark:hover:bg-white/20 transition-colors z-10"
+                            >
+                                <span className="material-symbols-outlined text-sm text-slate-500 dark:text-gray-400">close</span>
+                            </button>
+                            <div className="w-16 h-1 w-full bg-[#2bee4b]/20 rounded-full mb-4 mx-auto"></div>
+                            <h2 className="text-xl font-bold text-center mb-4 text-slate-900 dark:text-white tracking-tight">지식 기록</h2>
 
                             <div className="space-y-4 mb-8">
                                 {/* Stats Summary */}

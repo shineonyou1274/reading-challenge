@@ -13,18 +13,16 @@ const SECTIONS = [
                 <p className="text-gray-300 text-sm leading-relaxed">
                     가입 시 성향 분석을 통해 3개 제국 중 하나에 배정됩니다. 독서 활동이 제국의 힘이 됩니다.
                 </p>
-                <div className="grid grid-cols-1 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                     {[
-                        { id: 'logreia', label: '로그라이아', desc: '지혜와 기록의 제국 — 역사·인문·철학을 사랑하는 학자들', color: '#fbbf24', emoji: '📜' },
-                        { id: 'visiontium', label: '비전티움', desc: '상상과 창의의 제국 — 소설·예술·판타지를 탐험하는 몽상가들', color: '#c084fc', emoji: '🌌' },
-                        { id: 'factoria', label: '팩토리아', desc: '논리와 사실의 제국 — 과학·기술·경제를 분석하는 사상가들', color: '#22d3ee', emoji: '⚙️' },
+                        { id: 'logreia', label: '로그라이아', desc: '지혜와 기록의 제국', color: '#fbbf24', emoji: '📜' },
+                        { id: 'visiontium', label: '비전티움', desc: '상상과 창의의 제국', color: '#c084fc', emoji: '🌌' },
+                        { id: 'factoria', label: '팩토리아', desc: '논리와 사실의 제국', color: '#22d3ee', emoji: '⚙️' },
                     ].map(e => (
-                        <div key={e.id} className="flex items-start gap-3 bg-black/20 p-3 rounded-xl border border-white/5">
-                            <span className="text-2xl shrink-0">{e.emoji}</span>
-                            <div>
-                                <p className="font-black text-sm" style={{ color: e.color }}>{e.label}</p>
-                                <p className="text-gray-400 text-[11px] mt-0.5 leading-relaxed">{e.desc}</p>
-                            </div>
+                        <div key={e.id} className="flex flex-col items-center text-center bg-black/20 p-2 rounded-xl border border-white/5">
+                            <span className="text-3xl mb-1">{e.emoji}</span>
+                            <p className="font-black text-[11px]" style={{ color: e.color }}>{e.label}</p>
+                            <p className="text-gray-400 text-[10px] mt-0.5 leading-snug">{e.desc}</p>
                         </div>
                     ))}
                 </div>
