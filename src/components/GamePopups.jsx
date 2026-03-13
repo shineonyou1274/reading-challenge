@@ -25,6 +25,8 @@ export default function GamePopups({ queue, onNext, stats }) {
 
     return (
         <div
+            role="dialog"
+            aria-modal="true"
             className="fixed inset-0 z-[500] flex items-center justify-center cursor-pointer select-none"
             onClick={onNext}
         >

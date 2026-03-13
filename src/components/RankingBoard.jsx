@@ -3,11 +3,15 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { RPG_CONFIG, getLevelFromXP, getTitleForLevel } from '../utils/rpg';
 
-export default function RankingBoard({ type, empireFilter }) {
+export default function RankingBoard({ type, empireFilter, compact = false }) {
     const [topUsers, setTopUsers] = useState([]);
     const [topEmpires, setTopEmpires] = useState([]);
     const [empireMembers, setEmpireMembers] = useState([]); // 내 제국 멤버
+    const [allUsers, setAllUsers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showMore, setShowMore] = useState(false);
+    const [adminFilter, setAdminFilter] = useState('all'); // 'all' | empire id
+    const [searchName, setSearchName] = useState('');
     const currentUid = auth.currentUser?.uid;
 
     useEffect(() => {
@@ -31,6 +35,7 @@ export default function RankingBoard({ type, empireFilter }) {
 
                 // 전체 순위 Top 10
                 const sorted = [...allUsers].sort((a, b) => (b.totalXp || 0) - (a.totalXp || 0));
+                setAllUsers(sorted);
                 setTopUsers(sorted.slice(0, 10));
 
                 // 제국별 멤버 (내 제국 필터)
@@ -166,23 +171,88 @@ export default function RankingBoard({ type, empireFilter }) {
                                 <span className="material-symbols-outlined text-orange-500">crown</span>
                                 {RPG_CONFIG.EMPIRES[empireFilter]?.label} 학자 순위
                             </h3>
-                            <div className="space-y-3 relative z-10">
-                                {empireMembers.length > 0 ? empireMembers.map((user, idx) => (
-                                    <UserRow key={user.id} user={user} idx={idx} showEmpireBadge={false} />
-                                )) : (
-                                    <div className="text-center py-6 text-slate-400 dark:text-gray-500 text-xs">
-                                        아직 이 제국에 학자가 없습니다.
+                            {compact ? (
+                                <div className="relative z-10">
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {empireMembers.length > 0 ? empireMembers.slice(0, showMore ? empireMembers.length : 3).map((user, idx) => {
+                                            const isMe = user.id === currentUid;
+                                            const empireColor = RPG_CONFIG.EMPIRES[user.empireId]?.color;
+                                            return (
+                                                <div key={user.id} className={`p-3 rounded-2xl border text-center transition-colors
+                                                    ${isMe ? 'bg-[#2bee4b]/10 border-[#2bee4b]/40' : 'bg-stone-50 dark:bg-black/40 border-stone-100 dark:border-white/5'}`}>
+                                                    <div className="text-lg font-black mb-1" style={{
+                                                        color: idx === 0 ? '#fbbf24' : idx === 1 ? '#9ca3af' : idx === 2 ? '#b45309' : '#6b7280'
+                                                    }}>
+                                                        {idx === 0 ? '\ud83d\udc51' : idx + 1}
+                                                    </div>
+                                                    <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{user.displayName || '\uc774\ub984 \uc5c6\uc74c'}</p>
+                                                    <p className="text-[10px] text-slate-400 dark:text-gray-500 font-bold">{getTitleForLevel(user.computedLevel || 1)}</p>
+                                                    <p className="text-xs font-bold font-mono mt-1" style={{ color: empireColor || '#2bee4b' }}>{user.computedLevel || 1} LV</p>
+                                                </div>
+                                            );
+                                        }) : (
+                                            <div className="col-span-2 text-center py-6 text-slate-400 dark:text-gray-500 text-xs">
+                                                아직 이 제국에 학자가 없습니다.
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
+                                    {empireMembers.length > 3 && (
+                                        <button
+                                            onClick={() => setShowMore(v => !v)}
+                                            className="w-full mt-3 py-2.5 rounded-2xl border border-stone-200 dark:border-white/10 text-xs font-bold text-slate-500 dark:text-gray-400 hover:bg-stone-50 dark:hover:bg-white/5 transition-colors flex items-center justify-center gap-1"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">{showMore ? 'expand_less' : 'expand_more'}</span>
+                                            {showMore ? '접기' : `더 보기 (${empireMembers.length - 3}명)`}
+                                        </button>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="space-y-3 relative z-10">
+                                    {empireMembers.length > 0 ? empireMembers.map((user, idx) => (
+                                        <UserRow key={user.id} user={user} idx={idx} showEmpireBadge={false} />
+                                    )) : (
+                                        <div className="text-center py-6 text-slate-400 dark:text-gray-500 text-xs">
+                                            아직 이 제국에 학자가 없습니다.
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
                 </>
             )}
 
             {/* 명예의 전당: 전체 통합 순위 */}
-            {type === 'global' && (
+            {type === 'global' && (() => {
+                // 관리자 필터 적용
+                const filtered = allUsers.filter(u => {
+                    const matchEmpire = adminFilter === 'all' || u.empireId === adminFilter;
+                    const matchName = !searchName.trim() || (u.displayName || '').toLowerCase().includes(searchName.toLowerCase());
+                    return matchEmpire && matchName;
+                });
+                const displayUsers = (adminFilter !== 'all' || searchName.trim()) ? filtered : topUsers;
+                return (
                 <>
+                    {/* 관리자 필터 */}
+                    <div className="bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-2xl p-3 shadow-sm space-y-2">
+                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                            {[{ id: 'all', label: '전체', color: '#2bee4b' }, ...Object.values(RPG_CONFIG.EMPIRES)].map(emp => (
+                                <button key={emp.id} onClick={() => { setAdminFilter(emp.id); setShowMore(false); }}
+                                    className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all ${adminFilter === emp.id
+                                        ? 'text-white shadow-sm' : 'text-slate-500 dark:text-gray-400 bg-stone-50 dark:bg-black/20 border border-stone-100 dark:border-white/5'}`}
+                                    style={adminFilter === emp.id ? { backgroundColor: emp.color } : {}}>
+                                    {emp.label}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="relative">
+                            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-slate-400 dark:text-gray-500">search</span>
+                            <input type="text" placeholder="이름 검색..."
+                                value={searchName} onChange={e => setSearchName(e.target.value)}
+                                className="w-full pl-8 pr-3 py-2 rounded-xl border border-stone-200 dark:border-[#32673b] bg-stone-50 dark:bg-black/20 text-xs text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-600 outline-none focus:ring-1 ring-[#2bee4b]" />
+                        </div>
+                    </div>
+
                     {/* 제국 순위 요약 */}
                     <div className="bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-[32px] p-6 shadow-xl relative overflow-hidden">
                         <h3 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -216,18 +286,77 @@ export default function RankingBoard({ type, empireFilter }) {
                         </div>
                         <h3 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-widest mb-4 flex items-center gap-2">
                             <span className="material-symbols-outlined text-orange-500">crown</span>
-                            전체 학자 TOP 10
+                            {compact ? '최고의 학자 TOP 3' : '전체 학자 TOP 10'}
                         </h3>
-                        <div className="space-y-3 relative z-10">
-                            {topUsers.length > 0 ? topUsers.map((user, idx) => (
-                                <UserRow key={user.id} user={user} idx={idx} showEmpireBadge={true} />
-                            )) : (
-                                <div className="text-center py-6 text-slate-400 dark:text-gray-500 text-xs">데이터가 없습니다.</div>
-                            )}
-                        </div>
+                        {compact ? (
+                            <div className="relative z-10">
+                                {/* Top 3 Medal Cards */}
+                                <div className="grid grid-cols-3 gap-3 mb-4">
+                                    {displayUsers.slice(0, 3).map((user, idx) => {
+                                        const isMe = user.id === currentUid;
+                                        const medalColors = ['#fbbf24', '#9ca3af', '#b45309'];
+                                        const medalIcons = ['\ud83e\uddc1', '\ud83e\udd48', '\ud83e\udd49'];
+                                        const empireColor = RPG_CONFIG.EMPIRES[user.empireId]?.color;
+                                        return (
+                                            <div key={user.id} className={`relative p-4 rounded-2xl border-2 text-center transition-all
+                                                ${isMe ? 'bg-[#2bee4b]/10' : 'bg-gradient-to-b from-white to-stone-50 dark:from-[#1a331d] dark:to-[#142a17]'}`}
+                                                style={{ borderColor: medalColors[idx] + '60' }}>
+                                                <div className="text-3xl mb-2">{medalIcons[idx]}</div>
+                                                <div className="size-12 mx-auto rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center border-2 mb-2"
+                                                    style={{ borderColor: medalColors[idx] }}>
+                                                    <span className="material-symbols-outlined text-slate-400 dark:text-gray-400 text-lg">person</span>
+                                                </div>
+                                                <p className="text-xs font-black text-slate-800 dark:text-white truncate">{user.displayName || '\uc774\ub984 \uc5c6\uc74c'}</p>
+                                                <p className="text-[9px] text-slate-400 dark:text-gray-500 font-bold mt-0.5">{getTitleForLevel(user.computedLevel || 1)}</p>
+                                                {user.empireId && (
+                                                    <span className="inline-block mt-1 text-[8px] font-black px-1.5 py-0.5 rounded border"
+                                                        style={{ color: empireColor, borderColor: empireColor + '50', backgroundColor: empireColor + '15' }}>
+                                                        {RPG_CONFIG.EMPIRES[user.empireId]?.label}
+                                                    </span>
+                                                )}
+                                                <p className="text-sm font-bold font-mono mt-1.5" style={{ color: medalColors[idx] }}>{user.computedLevel || 1} LV</p>
+                                                <p className="text-[10px] text-slate-400 dark:text-gray-500 font-mono">{(user.totalXp || 0).toLocaleString()} XP</p>
+                                                {isMe && <span className="absolute top-2 right-2 text-[8px] bg-[#2bee4b] text-[#102213] px-1 py-0.5 rounded-full font-black">나</span>}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                {/* 4th+ behind toggle */}
+                                {displayUsers.length > 3 && (
+                                    <>
+                                        {showMore && (
+                                            <div className="space-y-3 mb-3">
+                                                {displayUsers.slice(3).map((user, idx) => (
+                                                    <UserRow key={user.id} user={user} idx={idx + 3} showEmpireBadge={true} />
+                                                ))}
+                                            </div>
+                                        )}
+                                        <button
+                                            onClick={() => setShowMore(v => !v)}
+                                            className="w-full py-2.5 rounded-2xl border border-stone-200 dark:border-white/10 text-xs font-bold text-slate-500 dark:text-gray-400 hover:bg-stone-50 dark:hover:bg-white/5 transition-colors flex items-center justify-center gap-1"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">{showMore ? 'expand_less' : 'expand_more'}</span>
+                                            {showMore ? '접기' : `더 보기 (${displayUsers.length - 3}명)`}
+                                        </button>
+                                    </>
+                                )}
+                                {displayUsers.length === 0 && (
+                                    <div className="text-center py-6 text-slate-400 dark:text-gray-500 text-xs">검색 결과가 없습니다.</div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="space-y-3 relative z-10">
+                                {displayUsers.length > 0 ? displayUsers.map((user, idx) => (
+                                    <UserRow key={user.id} user={user} idx={idx} showEmpireBadge={true} />
+                                )) : (
+                                    <div className="text-center py-6 text-slate-400 dark:text-gray-500 text-xs">데이터가 없습니다.</div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </>
-            )}
+                );
+            })()}
         </div>
     );
 }

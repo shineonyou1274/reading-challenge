@@ -81,7 +81,7 @@ const SECTIONS = [
         content: (
             <div className="space-y-4">
                 <p className="text-gray-300 text-sm leading-relaxed">
-                    이 앱은 <strong className="text-[#38bdf8]">PWA</strong>로, 홈 화면에 설치해서 앱처럼 사용할 수 있습니다.
+                    이 앱은 홈 화면에 설치해서 앱처럼 사용할 수 있습니다.
                 </p>
                 <div className="space-y-2">
                     {[
@@ -116,7 +116,7 @@ export default function GuideModal({ onClose }) {
     const current = SECTIONS.find(s => s.id === activeSection);
 
     return (
-        <div className="fixed inset-0 bg-[#050b06]/95 z-[300] flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-300">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 bg-[#050b06]/95 z-[300] flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-300">
             <div className="max-w-lg w-full bg-[#1a331d] border border-[#32673b] rounded-[28px] overflow-hidden flex flex-col max-h-[92vh] shadow-2xl">
 
                 {/* ── 헤더 */}

@@ -32,16 +32,28 @@ class SoundManager {
         });
     }
 
-    // ─── BGM: MP3 랜덤 루프 ──────────────────────────────────────────
+    // ─── BGM: MP3 랜덤 루프 (페이드인) ─────────────────────────────────
     startBgm() {
         if (this.isBgmPlaying || !this.bgmEnabled) return;
         try {
             const file = this._bgmFiles[Math.floor(Math.random() * this._bgmFiles.length)];
             this.bgmAudio = new Audio(file);
             this.bgmAudio.loop = true;
-            this.bgmAudio.volume = 0.28;
+            this.bgmAudio.volume = 0;
             this.bgmAudio.play().catch(() => { });
             this.isBgmPlaying = true;
+            // 1초간 페이드인 (0 → 0.28)
+            const target = 0.28;
+            const step = target / 50; // 50 steps × 20ms = 1초
+            const fadeIn = setInterval(() => {
+                if (!this.bgmAudio) { clearInterval(fadeIn); return; }
+                if (this.bgmAudio.volume + step < target) {
+                    this.bgmAudio.volume += step;
+                } else {
+                    this.bgmAudio.volume = target;
+                    clearInterval(fadeIn);
+                }
+            }, 20);
         } catch (e) {
             console.warn('BGM 재생 실패:', e);
         }

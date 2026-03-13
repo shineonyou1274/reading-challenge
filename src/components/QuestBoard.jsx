@@ -82,7 +82,7 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                 if (data.bookTitle && !booksMap.has(data.bookTitle)) {
                     booksMap.set(data.bookTitle, {
                         title: data.bookTitle,
-                        author: data.bookAuthor || 'Unknown', // We might need to save author in session
+                        author: data.bookAuthor || '저자 미상',
                         image: data.bookImage || null,
                         lastRead: data.timestamp
                     });
@@ -163,20 +163,30 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                 );
             })()}
 
+            {/* 📊 오늘의 통계 1×3 그리드 */}
+            <section className="px-4">
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                    <div className="bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-2xl p-3 text-center shadow-sm">
+                        <span className="material-symbols-outlined text-lg text-[#2bee4b] mb-1" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span>
+                        <p className="text-lg font-black text-slate-900 dark:text-white tabular-nums leading-tight">{formatTotalTime(todayTotalSeconds)}</p>
+                        <p className="text-[8px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#92c99b] mt-0.5">오늘 독서</p>
+                    </div>
+                    <div className="bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-2xl p-3 text-center shadow-sm">
+                        <span className="material-symbols-outlined text-lg text-orange-400 mb-1" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
+                        <p className="text-lg font-black text-slate-900 dark:text-white tabular-nums leading-tight">{stats?.streak || 0}일</p>
+                        <p className="text-[8px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#92c99b] mt-0.5">연속 스트릭</p>
+                    </div>
+                    <div className="bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-2xl p-3 text-center shadow-sm">
+                        <span className="material-symbols-outlined text-lg text-amber-400 mb-1" style={{ fontVariationSettings: "'FILL' 1" }}>stars</span>
+                        <p className="text-lg font-black text-slate-900 dark:text-white tabular-nums leading-tight">{stats?.totalXp?.toLocaleString() || 0}</p>
+                        <p className="text-[8px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#92c99b] mt-0.5">누적 XP</p>
+                    </div>
+                </div>
+            </section>
+
             {/* 📖 독서 타이머 카드 */}
             <section className="px-4">
                 <div className="bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-3xl p-5 shadow-sm">
-                    {/* 상단: 오늘 독서량 + 스트릭 */}
-                    <div className="flex items-center justify-between mb-4">
-                        <div>
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-[#92c99b]">오늘의 독서</p>
-                            <p className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">{formatTotalTime(todayTotalSeconds)}</p>
-                        </div>
-                        <div className="flex items-center gap-1 bg-orange-50 dark:bg-orange-500/10 px-3 py-1.5 rounded-full">
-                            <span className="material-symbols-outlined text-sm text-orange-400" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
-                            <span className="text-sm text-orange-400 font-black">{stats?.streak || 0}일</span>
-                        </div>
-                    </div>
 
                     {/* 타이머 모드 선택 */}
                     <div className="flex gap-2 mb-4">
@@ -300,12 +310,12 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                             <div className="space-y-4 mb-8">
                                 {/* Stats Summary */}
                                 <div className="grid grid-cols-2 gap-3">
-                                    <div className="bg-black/30 p-4 rounded-2xl text-center border border-white/5">
-                                        <p className="text-[9px] uppercase font-bold text-[#92c99b] mb-1">획득 XP</p>
+                                    <div className="bg-stone-100 dark:bg-black/30 p-4 rounded-2xl text-center border border-stone-200 dark:border-white/5">
+                                        <p className="text-[9px] uppercase font-bold text-[#057a1b] dark:text-[#92c99b] mb-1">획득 XP</p>
                                         <p className="text-xl font-bold text-[#2bee4b]">+{calculateRewards(elapsedTime).xp}</p>
                                     </div>
-                                    <div className="bg-black/30 p-4 rounded-2xl text-center border border-white/5">
-                                        <p className="text-[9px] uppercase font-bold text-[#92c99b] mb-1">독서 시간</p>
+                                    <div className="bg-stone-100 dark:bg-black/30 p-4 rounded-2xl text-center border border-stone-200 dark:border-white/5">
+                                        <p className="text-[9px] uppercase font-bold text-[#057a1b] dark:text-[#92c99b] mb-1">독서 시간</p>
                                         <p className="text-xl font-bold text-[#2bee4b]">{Math.floor(elapsedTime / 60)}분</p>
                                     </div>
                                 </div>
@@ -340,10 +350,10 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                                         </div>
                                         <div className="relative my-4">
                                             <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                                                <div className="w-full border-t border-gray-700"></div>
+                                                <div className="w-full border-t border-stone-200 dark:border-gray-700"></div>
                                             </div>
                                             <div className="relative flex justify-center">
-                                                <span className="bg-[#102213] px-2 text-[10px] text-gray-500 font-medium">또는 새로운 책 검색</span>
+                                                <span className="bg-white dark:bg-[#102213] px-2 text-[10px] text-gray-500 font-medium">또는 새로운 책 검색</span>
                                             </div>
                                         </div>
                                     </div>
@@ -358,7 +368,7 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                                             value={bookTitle}
                                             onChange={(e) => setBookTitle(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                                            className="w-full bg-black/40 border border-[#32673b] rounded-xl p-3 pr-10 text-sm focus:ring-1 ring-[#2bee4b] outline-none transition-all text-white placeholder:text-gray-600"
+                                            className="w-full bg-stone-100 dark:bg-black/40 border border-stone-300 dark:border-[#32673b] rounded-xl p-3 pr-10 text-sm focus:ring-1 ring-[#2bee4b] outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-600"
                                         />
                                         <button
                                             onClick={handleSearch}
@@ -377,7 +387,7 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                                             placeholder="0"
                                             value={pagesRead}
                                             onChange={(e) => setPagesRead(e.target.value)}
-                                            className="w-full bg-black/40 border border-[#32673b] rounded-xl p-3 text-sm focus:ring-1 ring-[#2bee4b] outline-none text-white placeholder:text-gray-600"
+                                            className="w-full bg-stone-100 dark:bg-black/40 border border-stone-300 dark:border-[#32673b] rounded-xl p-3 text-sm focus:ring-1 ring-[#2bee4b] outline-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-600"
                                         />
                                         <p className="text-[10px] text-gray-500 mt-1.5 ml-1 leading-relaxed">
                                             ⚠️ 분당 3페이지 초과 시 페이지 XP 자동 제한 <span className="text-gray-600">(시간 XP는 정상 지급)</span>
@@ -433,7 +443,7 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                                                 </button>
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="font-bold text-white text-sm truncate">{bookTitle}</p>
+                                                <p className="font-bold text-slate-900 dark:text-white text-sm truncate">{bookTitle}</p>
                                                 {bookAuthor && <p className="text-[11px] text-[#92c99b] truncate mt-0.5">{bookAuthor}</p>}
                                             </div>
                                         </div>
@@ -444,11 +454,11 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                                     placeholder="오늘의 깨달음을 기록하세요..."
                                     value={note}
                                     onChange={(e) => setNote(e.target.value)}
-                                    className="w-full bg-black/40 border border-[#32673b] rounded-xl p-3 text-sm h-24 resize-none outline-none focus:ring-1 ring-[#2bee4b] text-white placeholder:text-gray-600"
+                                    className="w-full bg-stone-100 dark:bg-black/40 border border-stone-300 dark:border-[#32673b] rounded-xl p-3 text-sm h-24 resize-none outline-none focus:ring-1 ring-[#2bee4b] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-600"
                                 />
 
                                 {/* 📝 한 줄 요약 (선택, +60 XP) */}
-                                <div className="bg-black/30 rounded-xl p-3 border border-[#2bee4b]/20">
+                                <div className="bg-stone-100 dark:bg-black/30 rounded-xl p-3 border border-[#2bee4b]/20">
                                     <p className="text-[10px] font-bold text-[#2bee4b] uppercase tracking-wider mb-1.5">
                                         📝 한 줄 요약 <span className="text-green-600 normal-case">(선택 · +60 XP)</span>
                                     </p>
@@ -458,7 +468,7 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                                         onChange={(e) => setSummary(e.target.value)}
                                         maxLength={80}
                                         placeholder="오늘 읽은 내용을 한 문장으로..."
-                                        className="w-full bg-transparent text-sm text-white outline-none placeholder:text-gray-600"
+                                        className="w-full bg-transparent text-sm text-slate-900 dark:text-white outline-none placeholder:text-slate-400 dark:placeholder:text-gray-600"
                                     />
                                     {summary.length > 0 && (
                                         <p className="text-[9px] text-[#2bee4b]/60 mt-1 text-right">{summary.length}/80</p>

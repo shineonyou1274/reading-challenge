@@ -114,7 +114,7 @@ export default function FocusTimer({ elapsedTime, bookTitle, mode, onPause, onSt
 
             {/* 하단 버튼 */}
             <div className="flex gap-6 z-10">
-                <button onClick={onPause} className="flex flex-col items-center gap-1.5">
+                <button onClick={onPause} aria-label={isRunning ? '일시정지' : '재개'} className="flex flex-col items-center gap-1.5">
                     <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center active:scale-95 transition-all">
                         <span className="material-symbols-outlined text-2xl text-gray-400">
                             {isRunning ? 'pause' : 'play_arrow'}
@@ -125,7 +125,7 @@ export default function FocusTimer({ elapsedTime, bookTitle, mode, onPause, onSt
                     </span>
                 </button>
 
-                <button onClick={onStop} className="flex flex-col items-center gap-1.5">
+                <button onClick={onStop} aria-label="기록 저장" className="flex flex-col items-center gap-1.5">
                     <div
                         className="w-14 h-14 rounded-2xl border flex items-center justify-center active:scale-95 transition-all"
                         style={{ backgroundColor: modeColor + '20', borderColor: modeColor + '60' }}

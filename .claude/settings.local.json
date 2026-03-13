@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -r \"level\\\\|streak\\\\|achievement\\\\|empire\\\\|quest\\\\|crown\" /c/Users/경남교육청/Desktop/reading_challenge/src/utils/*.js --include=\"*.js\" -l)",
+      "Bash(find /c/Users/경남교육청/Desktop/reading_challenge/src -name \"*.jsx\" -exec wc -l {} +)",
+      "Bash(grep -r \"img\\\\|image\" /c/Users/경남교육청/Desktop/reading_challenge/src/components/*.jsx)",
+      "Bash(npx vite:*)"
+    ]
+  }
+}

@@ -3,9 +3,9 @@
  */
 
 export const RPG_CONFIG = {
-    XP_PER_MINUTE: 10,
+    XP_PER_MINUTE: 7,
     BASE_XP_TO_LEVEL: 1000,
-    LEVEL_MULTIPLIER: 1.2, // Level 2 needs 1200, Level 3 needs 1440...
+    LEVEL_MULTIPLIER: 1.4, // Level 2 needs 1400, Level 3 needs 1960...
     GOLD_PER_XP: 0.1, // 100 XP = 10 Gold
 
     MODES: {
@@ -69,13 +69,13 @@ export const RPG_CONFIG = {
 
     // 6. 데일리 퀘스트 템플릿
     DAILY_QUEST_TEMPLATES: [
-        { id: 'read_30min',    name: '30분 독서',    desc: '오늘 30분 이상 독서하기',           xpReward: 150, goldReward: 15, icon: '📖' },
-        { id: 'read_1hour',    name: '1시간 독서',   desc: '오늘 누적 1시간 이상 독서하기',       xpReward: 300, goldReward: 30, icon: '⏰' },
-        { id: 'write_note',    name: '독후감 작성',  desc: '독서 기록에 노트 남기기 (10자 이상)', xpReward: 80,  goldReward: 8,  icon: '✍️' },
-        { id: 'write_summary', name: '한 줄 요약',   desc: '세션 후 한 줄 요약 작성하기',         xpReward: 60,  goldReward: 6,  icon: '📝' },
-        { id: 'focus_mode',    name: '집중 독서',    desc: '집중 모드로 20분 이상 독서',          xpReward: 200, goldReward: 20, icon: '🎯' },
-        { id: 'new_book',      name: '새 책 시작',   desc: '새로운 책으로 독서 세션 시작',         xpReward: 100, goldReward: 10, icon: '📚' },
-        { id: 'study_mode',    name: '학습 독서',    desc: '학습 모드로 30분 이상 독서',          xpReward: 180, goldReward: 25, icon: '🧠' },
+        { id: 'read_30min',    name: '30분 독서',    desc: '오늘 30분 이상 독서하기',           xpReward: 80,  goldReward: 8,  icon: '📖' },
+        { id: 'read_1hour',    name: '1시간 독서',   desc: '오늘 누적 1시간 이상 독서하기',       xpReward: 180, goldReward: 18, icon: '⏰' },
+        { id: 'write_note',    name: '독후감 작성',  desc: '독서 기록에 노트 남기기 (10자 이상)', xpReward: 50,  goldReward: 5,  icon: '✍️' },
+        { id: 'write_summary', name: '한 줄 요약',   desc: '세션 후 한 줄 요약 작성하기',         xpReward: 40,  goldReward: 4,  icon: '📝' },
+        { id: 'focus_mode',    name: '집중 독서',    desc: '집중 모드로 20분 이상 독서',          xpReward: 120, goldReward: 12, icon: '🎯' },
+        { id: 'new_book',      name: '새 책 시작',   desc: '새로운 책으로 독서 세션 시작',         xpReward: 60,  goldReward: 6,  icon: '📚' },
+        { id: 'study_mode',    name: '학습 독서',    desc: '학습 모드로 30분 이상 독서',          xpReward: 100, goldReward: 15, icon: '🧠' },
     ],
 };
 
@@ -117,4 +117,36 @@ export const getTitleForLevel = (level) => {
 export const getRankForLevel = (level) => {
     const ranks = [...RPG_CONFIG.RANKS].reverse();
     return ranks.find(r => level >= r.minLevel) || RPG_CONFIG.RANKS[0];
+};
+
+/**
+ * League Tier definitions with level ranges
+ */
+const LEAGUE_TIER_DETAILS = [
+    { minLevel: 1,  id: 'bronze',    label: '브론즈',       color: '#cd7f32', icon: '🥉' },
+    { minLevel: 5,  id: 'silver',    label: '실버',         color: '#c0c0c0', icon: '🥈' },
+    { minLevel: 10, id: 'gold',      label: '골드',         color: '#ffd700', icon: '🥇' },
+    { minLevel: 15, id: 'sapphire',  label: '사파이어',     color: '#0f52ba', icon: '💎' },
+    { minLevel: 20, id: 'ruby',      label: '루비',         color: '#e0115f', icon: '❤️‍🔥' },
+    { minLevel: 30, id: 'emerald',   label: '에메랄드',     color: '#50c878', icon: '💚' },
+    { minLevel: 40, id: 'amethyst',  label: '아메시스트',   color: '#9966cc', icon: '🔮' },
+    { minLevel: 50, id: 'pearl',     label: '펄',           color: '#eae0c8', icon: '🤍' },
+    { minLevel: 60, id: 'obsidian',  label: '옵시디언',     color: '#3d3635', icon: '🖤' },
+    { minLevel: 75, id: 'diamond',   label: '다이아몬드',   color: '#b9f2ff', icon: '💠' },
+];
+
+/**
+ * Get league tier info based on level
+ * Returns { id, label, color, icon, minLevel, nextMinLevel }
+ */
+export const getLeagueTier = (level) => {
+    const tiers = [...LEAGUE_TIER_DETAILS].reverse();
+    const tier = tiers.find(t => level >= t.minLevel) || LEAGUE_TIER_DETAILS[0];
+    const currentIndex = LEAGUE_TIER_DETAILS.indexOf(tier);
+    const nextTier = LEAGUE_TIER_DETAILS[currentIndex + 1] || null;
+    return {
+        ...tier,
+        nextMinLevel: nextTier ? nextTier.minLevel : null,
+        nextLabel: nextTier ? nextTier.label : null,
+    };
 };

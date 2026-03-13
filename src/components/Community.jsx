@@ -14,6 +14,7 @@ export default function Community({ darkMode, stats, onShopPurchase }) {
     const [currentUserEmpire, setCurrentUserEmpire] = useState(null);
     const [visibleCount, setVisibleCount] = useState(10);
     const [userPopup, setUserPopup] = useState(null); // { userId, userName, userTitle, records }
+    const [showEmpireDetail, setShowEmpireDetail] = useState(false);
 
     // 현재 유저의 제국 정보 가져오기
     useEffect(() => {
@@ -22,7 +23,7 @@ export default function Community({ darkMode, stats, onShopPurchase }) {
                 if (snap.exists()) {
                     setCurrentUserEmpire(snap.data().empireId || null);
                 }
-            });
+            }).catch(e => console.warn('Empire fetch failed:', e));
         }
     }, []);
 
@@ -130,23 +131,31 @@ export default function Community({ darkMode, stats, onShopPurchase }) {
                         <div className="mb-4">
                             <EmpireWarMap />
                         </div>
-                        <RankingBoard type="empire" empireFilter={currentUserEmpire} />
+                        <button
+                            onClick={() => setShowEmpireDetail(v => !v)}
+                            className="w-full py-3 rounded-2xl border border-stone-200 dark:border-white/10 text-sm font-bold text-slate-600 dark:text-gray-300 hover:bg-stone-50 dark:hover:bg-white/5 transition-colors flex items-center justify-center gap-2 bg-white dark:bg-[#1a331d] shadow-sm"
+                        >
+                            <span className="material-symbols-outlined text-base">{showEmpireDetail ? 'expand_less' : 'leaderboard'}</span>
+                            {showEmpireDetail ? '접기' : '제국 상세 순위 보기'}
+                        </button>
+                        {showEmpireDetail && (
+                            <RankingBoard type="empire" empireFilter={currentUserEmpire} compact={true} />
+                        )}
                     </div>
                 ) : activeTab === 'global' ? (
-                    <RankingBoard type="global" empireFilter={null} />
+                    <div className="space-y-4">
+                        <ScholarBanner />
+                        <RankingBoard type="global" empireFilter={null} compact={true} />
+                    </div>
                 ) : (
                     <>
-                        <ScholarBanner />
                         {loading ? (
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 {[1, 2, 3].map(i => (
-                                    <div key={i} className="rounded-2xl bg-white dark:bg-[#1a331d] border border-stone-100 dark:border-[#32673b] p-4 flex gap-3">
-                                        <div className="w-11 h-14 shrink-0 rounded-xl bg-stone-200 dark:bg-white/5 animate-pulse" />
-                                        <div className="flex-1 space-y-2 pt-1">
-                                            <div className="h-3 bg-stone-200 dark:bg-white/5 rounded-full animate-pulse w-2/5" />
-                                            <div className="h-2.5 bg-stone-100 dark:bg-white/5 rounded-full animate-pulse w-3/5" />
-                                            <div className="h-2 bg-stone-100 dark:bg-white/5 rounded-full animate-pulse w-4/5" />
-                                        </div>
+                                    <div key={i} className="rounded-xl bg-white dark:bg-[#1a331d] border border-stone-100 dark:border-[#32673b] p-3 flex gap-3">
+                                        <div className="h-3 bg-stone-200 dark:bg-white/5 rounded-full animate-pulse w-1/4" />
+                                        <div className="h-3 bg-stone-100 dark:bg-white/5 rounded-full animate-pulse w-2/5" />
+                                        <div className="h-3 bg-stone-100 dark:bg-white/5 rounded-full animate-pulse w-1/6 ml-auto" />
                                     </div>
                                 ))}
                             </div>
@@ -159,42 +168,30 @@ export default function Community({ darkMode, stats, onShopPurchase }) {
                             <>
                                 {visibleUsers.map((user) => {
                                     const latest = user.records[0];
-                                    const totalMins = Math.floor(user.records.reduce((a, r) => a + (r.elapsedTime || 0), 0) / 60);
-                                    const totalXp = user.records.reduce((a, r) => a + (r.rewards?.xp || 0), 0);
                                     const empireColor = RPG_CONFIG.EMPIRES[user.empireId]?.color;
                                     return (
                                         <article
                                             key={user.userId || user.userName}
-                                            className="rounded-2xl bg-white dark:bg-[#1a331d] border border-stone-100 dark:border-[#32673b] overflow-hidden transition-all hover:border-stone-200 dark:hover:border-[#2bee4b]/40 shadow-sm cursor-pointer active:scale-[0.99]"
+                                            className="rounded-xl bg-white dark:bg-[#1a331d] border border-stone-100 dark:border-[#32673b] overflow-hidden transition-all hover:border-stone-200 dark:hover:border-[#2bee4b]/40 shadow-sm cursor-pointer active:scale-[0.99]"
                                             onClick={() => setUserPopup(user)}
                                         >
-                                            <div className="flex items-center gap-3 p-4">
+                                            <div className="flex items-center gap-3 px-4 py-3">
                                                 {/* 유저 아바타 */}
-                                                <div className="size-12 shrink-0 rounded-2xl flex items-center justify-center text-xl font-black"
+                                                <div className="size-9 shrink-0 rounded-xl flex items-center justify-center text-sm font-black"
                                                     style={{ backgroundColor: (empireColor || '#2bee4b') + '20', border: `1.5px solid ${(empireColor || '#2bee4b')}40` }}>
                                                     {(user.userName || '?')[0]}
                                                 </div>
 
-                                                <div className="flex-1 min-w-0">
-                                                    {/* 이름 + 작위 */}
-                                                    <div className="flex items-center gap-1.5 mb-0.5">
-                                                        <span className="font-bold text-sm text-slate-900 dark:text-white truncate">{user.userName}</span>
-                                                        <span className="text-[9px] bg-stone-100 dark:bg-black/30 text-slate-500 dark:text-gray-500 px-1.5 py-0.5 rounded-full font-bold uppercase shrink-0">{user.userTitle}</span>
-                                                    </div>
-                                                    {/* 최근 책 */}
-                                                    {latest?.bookTitle && (
-                                                        <div className="flex items-center gap-1 mb-1">
-                                                            <span className="material-symbols-outlined text-[#057a1b] dark:text-[#2bee4b] text-xs">menu_book</span>
-                                                            <span className="text-xs text-[#057a1b] dark:text-[#2bee4b] truncate">{latest.bookTitle}</span>
-                                                        </div>
-                                                    )}
-                                                    {/* 통계 */}
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-[10px] font-bold text-[#057a1b] dark:text-[#2bee4b] bg-[#2bee4b]/10 px-2 py-0.5 rounded-full">{totalMins}분</span>
-                                                        <span className="text-[10px] text-slate-400 dark:text-gray-500">+{totalXp} XP</span>
-                                                        <span className="text-[10px] text-slate-400 dark:text-gray-600 ml-auto">{timeAgo(latest?.timestamp)}</span>
-                                                    </div>
-                                                </div>
+                                                {/* 유저명 */}
+                                                <span className="font-bold text-sm text-slate-900 dark:text-white truncate shrink-0">{user.userName}</span>
+
+                                                {/* 최근 책 제목 */}
+                                                {latest?.bookTitle && (
+                                                    <span className="text-xs text-[#057a1b] dark:text-[#2bee4b] truncate flex-1 min-w-0">{latest.bookTitle}</span>
+                                                )}
+
+                                                {/* 시간 */}
+                                                <span className="text-[10px] text-slate-400 dark:text-gray-600 shrink-0 ml-auto">{timeAgo(latest?.timestamp)}</span>
 
                                                 <span className="material-symbols-outlined text-slate-300 dark:text-gray-600 text-sm shrink-0">chevron_right</span>
                                             </div>
@@ -228,15 +225,12 @@ export default function Community({ darkMode, stats, onShopPurchase }) {
 
             {/* 유저 팝업 (바텀시트) */}
             {userPopup && (
-                <div className="fixed inset-0 z-[500] flex flex-col justify-end" onClick={() => setUserPopup(null)}>
+                <div className="fixed inset-0 z-[500] flex items-center justify-center p-4" onClick={() => setUserPopup(null)}>
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
                     <div
-                        className="relative bg-white dark:bg-[#0d1f0f] rounded-t-[32px] shadow-2xl border-t border-stone-200 dark:border-[#2a5530] max-h-[80vh] flex flex-col"
+                        className="relative bg-white dark:bg-[#0d1f0f] rounded-[28px] shadow-2xl border border-stone-200 dark:border-[#2a5530] max-h-[80vh] max-w-md w-full flex flex-col"
                         onClick={e => e.stopPropagation()}
                     >
-                        <div className="flex justify-center pt-3 pb-1 shrink-0">
-                            <div className="w-10 h-1 bg-stone-300 dark:bg-white/20 rounded-full" />
-                        </div>
                         {/* 헤더 */}
                         <div className="px-5 py-3 border-b border-stone-100 dark:border-white/5 shrink-0 flex items-center justify-between">
                             <div className="flex items-center gap-3">

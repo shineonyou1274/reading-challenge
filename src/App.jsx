@@ -10,12 +10,13 @@ import Community from './components/Community';
 import GlobalStatsModal from './components/GlobalStatsModal';
 import TutorialModal from './components/TutorialModal';
 import TeacherDashboard from './components/TeacherDashboard';
-import { RPG_CONFIG, getLevelFromXP, getTitleForLevel } from './utils/rpg';
+import { RPG_CONFIG, getLevelFromXP, getTitleForLevel, getLeagueTier } from './utils/rpg';
 import GuideModal from './components/GuideModal';
 import GamePopups from './components/GamePopups';
 import AchievementsModal from './components/AchievementsModal';
 import GoldShop from './components/GoldShop';
 import AnnouncementBanner from './components/AnnouncementBanner';
+import ErrorBoundary from './components/ErrorBoundary';
 import { checkNewAchievements, getRandomChestReward } from './utils/achievements';
 import { soundManager } from './utils/soundManager';
 import { getTodayKey, getTodayQuests, checkQuestCompletion } from './utils/dailyQuests';
@@ -23,6 +24,83 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 
 // Check if Firebase is properly configured
 const isFirebaseReady = import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_API_KEY !== "YOUR_API_KEY";
+
+const INTRO_QUOTES = [
+    { text: "책은 왕관보다 위대한 보물이다", author: "— 황실 격언" },
+    { text: "지혜는 제국을 세우는 가장 강력한 힘이다", author: "— 로그라이아 초대 황제" },
+    { text: "한 페이지가 한 세계를 연다", author: "— 비전티움 현자" },
+    { text: "읽는 자가 다스리고, 기록하는 자가 영원하다", author: "— 팩토리아 대서기관" },
+    { text: "오늘의 한 줄이 내일의 제국을 만든다", author: "— 황실 서고 비문" },
+];
+
+function IntroScreen({ onEnter }) {
+    const [quote] = useState(() => INTRO_QUOTES[Math.floor(Math.random() * INTRO_QUOTES.length)]);
+    const [displayedText, setDisplayedText] = useState('');
+    const [typingDone, setTypingDone] = useState(false);
+    const [showWelcome, setShowWelcome] = useState(false);
+    const [showEnter, setShowEnter] = useState(false);
+
+    useEffect(() => {
+        let i = 0;
+        const timer = setTimeout(() => {
+            const interval = setInterval(() => {
+                setDisplayedText(quote.text.slice(0, i + 1));
+                i++;
+                if (i >= quote.text.length) {
+                    clearInterval(interval);
+                    setTypingDone(true);
+                    setTimeout(() => setShowWelcome(true), 800);
+                    setTimeout(() => setShowEnter(true), 1800);
+                }
+            }, 60);
+            return () => clearInterval(interval);
+        }, 600);
+        return () => clearTimeout(timer);
+    }, [quote.text]);
+
+    return (
+        <div className="min-h-screen bg-[#102213] flex flex-col items-center justify-center p-6 relative overflow-hidden">
+            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(43,238,75,0.08)_0%,transparent_70%)] animate-glow-shift pointer-events-none" />
+            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#2bee4b]/20 to-transparent" />
+
+            <div className="animate-fade-up mb-8">
+                <span className="material-symbols-outlined text-[72px] text-[#2bee4b] drop-shadow-[0_0_30px_rgba(43,238,75,0.4)]">crown</span>
+            </div>
+
+            <div className="text-center max-w-sm mb-6 min-h-[80px] flex flex-col items-center justify-center">
+                <p className="text-xl text-[#92c99b] italic leading-relaxed">
+                    &ldquo;{displayedText}&rdquo;
+                    {!typingDone && <span className="typing-cursor inline-block w-0 ml-0.5">&nbsp;</span>}
+                </p>
+                {typingDone && (
+                    <p className="text-xs text-[#2bee4b]/50 mt-3 animate-fade-up tracking-wider">{quote.author}</p>
+                )}
+            </div>
+
+            {showWelcome && (
+                <div className="text-center mb-8 animate-fade-up">
+                    <h1 className="text-2xl font-black text-white tracking-widest uppercase mb-2">황실 기록소</h1>
+                    <p className="text-sm text-[#92c99b]/70">독서로 제국을 세우는 황실의 모험이 시작됩니다</p>
+                </div>
+            )}
+
+            {showEnter && (
+                <div className="text-center animate-fade-up">
+                    <p className="text-[#2bee4b] text-xs font-bold uppercase tracking-[0.3em] mb-5">입장하시겠습니까?</p>
+                    <button
+                        onClick={onEnter}
+                        className="px-12 py-4 bg-[#2bee4b] text-[#102213] font-black rounded-2xl shadow-[0_8px_32px_rgba(43,238,75,0.3)] hover:scale-105 active:scale-95 transition-all uppercase tracking-widest text-sm"
+                    >
+                        <span className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-lg">door_open</span>
+                            황실 입장
+                        </span>
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
 
 function Auth({ onMockLogin }) {
     const [isLogin, setIsLogin] = useState(true);
@@ -73,10 +151,10 @@ function Auth({ onMockLogin }) {
     return (
         <div className="min-h-screen bg-[#102213] flex items-center justify-center p-6 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#1a331d] to-[#102213]">
             <div className="max-w-md w-full animate-book">
-                <div className="text-center mb-10">
-                    <span className="material-symbols-outlined text-[80px] text-[#2bee4b] mb-4 drop-shadow-[0_0_20px_rgba(43,238,75,0.4)]">crown</span>
-                    <h1 className="text-4xl font-black text-white tracking-widest uppercase mb-2">황실 기록소</h1>
-                    <p className="text-[#92c99b] font-medium italic">"지혜는 왕국을 여는 열쇠입니다"</p>
+                <div className="text-center mb-8">
+                    <span className="material-symbols-outlined text-[56px] text-[#2bee4b] mb-3 drop-shadow-[0_0_20px_rgba(43,238,75,0.4)]">crown</span>
+                    <h1 className="text-3xl font-black text-white tracking-widest uppercase mb-1">황실 기록소</h1>
+                    <p className="text-[#92c99b] text-xs font-medium italic">&ldquo;지혜는 왕국을 여는 열쇠입니다&rdquo;</p>
                 </div>
 
                 <div className="bg-[#1a331d] border border-[#32673b] p-8 rounded-[32px] shadow-2xl">
@@ -202,6 +280,7 @@ export default function App() {
     const [user, setUser] = useState(null);
     const [isMocking, setIsMocking] = useState(false);
     const [initializing, setInitializing] = useState(true);
+    const [showIntro, setShowIntro] = useState(true);
     const { stats, loading: statsLoading, refresh } = useUserStats();
     const [view, setView] = useState('dashboard');
     const [showNotifications, setShowNotifications] = useState(false);
@@ -224,7 +303,18 @@ export default function App() {
         try { return useRegisterSW(); } catch { return { needRefresh: [false], updateServiceWorker: () => { } }; }
     })();
     const [showUpdateBanner, setShowUpdateBanner] = useState(false);
-    useEffect(() => { if (needRefresh?.[0]) setShowUpdateBanner(true); }, [needRefresh?.[0]]);
+    const [isUpdating, setIsUpdating] = useState(false);
+    useEffect(() => {
+        if (needRefresh?.[0]) {
+            if (sessionStorage.getItem('rrq_just_updated')) {
+                sessionStorage.removeItem('rrq_just_updated');
+                // 업데이트 후에도 needRefresh가 남아있으면 SW를 조용히 적용
+                try { updateServiceWorker(true); } catch (e) { }
+                return;
+            }
+            setShowUpdateBanner(true);
+        }
+    }, [needRefresh?.[0]]);
 
     // ── 팝업 큐 ────────────────────────────────────────────────────
     // { type: 'levelup'|'streak'|'chest'|'achievement', data: any }
@@ -261,7 +351,7 @@ export default function App() {
             members.sort((a, b) => b - a);
             const rank = members.findIndex(xp => xp <= myXp) + 1;
             setEmpireRank(rank > 0 ? rank : members.length);
-        });
+        }).catch(e => console.warn('Empire rank fetch failed:', e));
     }, [view, stats?.empireId, stats?.totalXp]);
 
     // Theme Management
@@ -515,6 +605,9 @@ export default function App() {
         </div>
     );
 
+    // 매 진입 시 인트로 → 로그인 유저는 메인으로, 비로그인 유저는 로그인 폼으로
+    if (showIntro) return <IntroScreen onEnter={() => setShowIntro(false)} />;
+
     if (!user && !isMocking) return <Auth onMockLogin={() => setIsMocking(true)} />;
 
     // When mocking, stats handle the demo data
@@ -539,17 +632,24 @@ export default function App() {
                     </div>
                     <div className="flex gap-2">
                         <button
-                            onClick={() => {
-                                try { updateServiceWorker(true); } catch (e) { console.warn('SW update failed:', e); }
-                                // 캐시 무효화 후 강제 리로드
-                                if ('caches' in window) {
-                                    caches.keys().then(names => Promise.all(names.map(n => caches.delete(n)))).finally(() => window.location.reload(true));
-                                } else {
-                                    window.location.reload(true);
+                            disabled={isUpdating}
+                            onClick={async () => {
+                                setIsUpdating(true);
+                                sessionStorage.setItem('rrq_just_updated', '1');
+                                try { await updateServiceWorker(true); } catch (e) { console.warn('SW update failed:', e); }
+                                // SW 등록 해제 후 캐시 무효화, 강제 리로드
+                                if ('serviceWorker' in navigator) {
+                                    const regs = await navigator.serviceWorker.getRegistrations();
+                                    await Promise.all(regs.map(r => r.unregister()));
                                 }
+                                if ('caches' in window) {
+                                    const names = await caches.keys();
+                                    await Promise.all(names.map(n => caches.delete(n)));
+                                }
+                                window.location.reload(true);
                             }}
                             className="bg-[#102213] text-[#2bee4b] text-xs font-black px-4 py-1.5 rounded-lg uppercase tracking-widest"
-                        >업데이트</button>
+                        >{isUpdating ? '적용 중...' : '업데이트'}</button>
                         <button onClick={() => setShowUpdateBanner(false)} className="text-[#102213]/60 text-xs px-2">✕</button>
                     </div>
                 </div>
@@ -580,6 +680,11 @@ export default function App() {
                             className="size-10 md:size-12 rounded-full bg-cover bg-center border-2 border-[#32673b] hover:border-[#2bee4b] transition-all shadow-lg overflow-hidden"
                             style={{ backgroundImage: `url('https://api.dicebear.com/7.x/avataaars/svg?seed=${isMocking ? 'demo' : user?.uid}')` }}
                         ></div>
+                        {empireRank && empireRank <= 3 && (
+                            <div className="absolute -top-2 -left-1 text-lg drop-shadow-lg animate-bounce" style={{ animationDuration: '2s' }}>
+                                {['👑', '🥈', '🥉'][empireRank - 1]}
+                            </div>
+                        )}
                         <div className="absolute -bottom-1 -right-1 bg-[#2bee4b] text-[#102213] text-[9px] font-black px-1.5 py-0.5 rounded-full border-2 border-[#102213] shadow-md">
                             LV {stats?.level || 1}
                         </div>
@@ -707,6 +812,7 @@ export default function App() {
             </header>
 
             <main className="flex-1 w-full max-w-4xl mx-auto md:px-6">
+              <ErrorBoundary>
                 {/* 📢 공지사항 배너 (모든 탭에서 표시) */}
                 {user && <AnnouncementBanner />}
 
@@ -725,13 +831,20 @@ export default function App() {
                             <div className="size-full rounded-full border-4 border-[#2bee4b] p-1 shadow-[0_0_40px_rgba(43,238,75,0.3)]">
                                 <div className="w-full h-full rounded-full bg-cover bg-center" style={{ backgroundImage: `url('https://api.dicebear.com/7.x/avataaars/svg?seed=${isMocking ? 'demo' : user?.uid}')` }}></div>
                             </div>
-                            {/* 관리자 왕관 */}
-                            {user?.email === 'peace@peace.re.kr' && (
+                            {/* 관리자 왕관 또는 순위 배지 */}
+                            {user?.email === 'peace@peace.re.kr' ? (
                                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-2xl" title="관리자">👑</div>
-                            )}
+                            ) : empireRank && empireRank <= 3 ? (
+                                <div className="absolute -top-3 -left-1 text-2xl drop-shadow-lg" title={`제국 ${empireRank}위`}>
+                                    {['🥇', '🥈', '🥉'][empireRank - 1]}
+                                </div>
+                            ) : null}
                         </div>
                         <h2 className="text-3xl font-black mb-1 font-mono tracking-tight text-slate-900 dark:text-white">
                             {user?.email === 'peace@peace.re.kr' && <span className="text-yellow-400 mr-1">👑</span>}
+                            {empireRank && empireRank <= 3 && user?.email !== 'peace@peace.re.kr' && (
+                                <span className="mr-1">{['🥇', '🥈', '🥉'][empireRank - 1]}</span>
+                            )}
                             {stats?.displayName || '황실 학자'}
                         </h2>
                         <p className="text-[#057a1b] dark:text-[#2bee4b] font-black uppercase tracking-[0.3em] text-[10px] mb-6">{stats?.title || '입문 학자'}</p>
@@ -816,27 +929,38 @@ export default function App() {
                             </div>
 
                             {/* Imperial League Card (Moved from Dashboard) */}
-                            <div className="bg-gradient-to-br from-[#2c1a33] to-[#1a1025] p-6 rounded-3xl shadow-xl border border-purple-500/30">
-                                <div className="flex justify-between items-center mb-4">
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] uppercase tracking-widest font-black text-purple-300 mb-1 opacity-60">임페리얼 리그</span>
-                                        <div className="flex items-center gap-2">
-                                            <span className="material-symbols-outlined text-purple-400 text-xl">trophy</span>
-                                            <span className="text-xl font-black text-white uppercase tracking-widest">{stats?.tier || 'BRONZE'}</span>
+                            {(() => {
+                                const tier = getLeagueTier(stats?.level || 1);
+                                const levelsToNext = tier.nextMinLevel ? tier.nextMinLevel - (stats?.level || 1) : 0;
+                                const tierProgress = tier.nextMinLevel
+                                    ? ((stats?.level || 1) - tier.minLevel) / (tier.nextMinLevel - tier.minLevel) * 100
+                                    : 100;
+                                return (
+                                    <div className="p-6 rounded-3xl shadow-xl border relative overflow-hidden"
+                                        style={{ background: `linear-gradient(135deg, ${tier.color}20, ${tier.color}08)`, borderColor: tier.color + '40' }}>
+                                        <div className="flex justify-between items-center mb-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] uppercase tracking-widest font-black mb-1 opacity-60" style={{ color: tier.color }}>Imperial League</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xl">{tier.icon}</span>
+                                                    <span className="text-xl font-black uppercase tracking-widest" style={{ color: tier.color }}>{tier.label}</span>
+                                                </div>
+                                            </div>
+                                            <div className="px-3 py-1 rounded-full border" style={{ backgroundColor: tier.color + '20', borderColor: tier.color + '50' }}>
+                                                <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: tier.color }}>LV.{stats?.level || 1}</span>
+                                            </div>
                                         </div>
+                                        <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden">
+                                            <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${tierProgress}%`, backgroundColor: tier.color, boxShadow: `0 0 12px ${tier.color}` }}></div>
+                                        </div>
+                                        {tier.nextLabel ? (
+                                            <p className="text-[10px] text-slate-500 dark:text-white/50 mt-2 tracking-wide">다음 리그 <span style={{ color: tier.color }} className="font-bold">{tier.nextLabel}</span>까지 <span className="font-bold text-slate-900 dark:text-white">{levelsToNext}레벨</span></p>
+                                        ) : (
+                                            <p className="text-[10px] mt-2 tracking-wide font-bold" style={{ color: tier.color }}>최고 리그 달성!</p>
+                                        )}
                                     </div>
-                                    <div className="bg-purple-500/20 px-3 py-1 rounded-full border border-purple-500/30">
-                                        <span className="text-[8px] font-black text-purple-300 uppercase tracking-widest">ACTIVE</span>
-                                    </div>
-                                </div>
-                                <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden flex">
-                                    <div className="h-full bg-red-900/50 w-[15%]" title="Danger Zone"></div>
-                                    <div className="h-full bg-transparent w-[65%]"></div>
-                                    <div className="h-full bg-purple-500 shadow-[0_0_15px_#a855f7] w-[20%] relative">
-                                        <div className="absolute -left-1 -top-1 size-3 bg-white rounded-full shadow border-1 border-purple-500"></div>
-                                    </div>
-                                </div>
-                            </div>
+                                );
+                            })()}
                         </div>
 
                         {/* Admin Access: Only for designated admin */}
@@ -893,6 +1017,7 @@ export default function App() {
                         </button>
                     </div>
                 )}
+              </ErrorBoundary>
             </main>
 
             {/* ─── 하단 탭 내비게이션 ─────────────────────────────────── */}

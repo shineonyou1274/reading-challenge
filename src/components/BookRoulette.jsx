@@ -155,11 +155,11 @@ export default function BookRoulette() {
     return (
         <div className="rounded-3xl bg-white dark:bg-[#1a331d] border border-stone-100 dark:border-[#32673b] overflow-hidden shadow-sm mb-5">
             {/* 헤더 */}
-            <div className="bg-gradient-to-r from-amber-900/40 to-[#1a331d] px-5 py-3.5 flex items-center gap-3">
+            <div className="bg-gradient-to-r from-amber-100 dark:from-amber-900/40 to-amber-50 dark:to-[#1a331d] px-5 py-3.5 flex items-center gap-3">
                 <span className="text-2xl">🗓️</span>
                 <div>
-                    <p className="text-[9px] text-amber-300 font-black uppercase tracking-[0.4em]">Daily Attendance</p>
-                    <h3 className="text-white font-black">출석 보상</h3>
+                    <p className="text-[9px] text-amber-700 dark:text-amber-300 font-black uppercase tracking-[0.4em]">Daily Attendance</p>
+                    <h3 className="text-slate-900 dark:text-white font-black">출석 보상</h3>
                 </div>
                 <div className="ml-auto flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-orange-400 text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
@@ -230,7 +230,7 @@ export default function BookRoulette() {
                         <span className="text-lg">{nextReward.icon}</span>
                         <div>
                             <p className="text-[9px] text-gray-500 uppercase tracking-wider">내일 보상 미리보기</p>
-                            <p className="text-xs font-bold text-white">+{nextReward.xp} XP · +{nextReward.gold} 골드</p>
+                            <p className="text-xs font-bold text-slate-900 dark:text-white">+{nextReward.xp} XP · +{nextReward.gold} 골드</p>
                         </div>
                         <span className="ml-auto text-[10px] text-gray-500">→ 내일</span>
                     </div>
