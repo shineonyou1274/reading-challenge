@@ -64,6 +64,10 @@ node_modules/
 
 # dotenv environment variables file
 .env
+.env.local
+
+# Build output (contains API keys)
+dist/
 
 # dataconnect generated files
 .dataconnect
