@@ -1,65 +1,85 @@
-import React, { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { doc, onSnapshot, collection, getDocs, query, orderBy, limit as fbLimit } from 'firebase/firestore';
 import { db, auth } from '../firebase';
-import { RPG_CONFIG, getLevelFromXP, getTitleForLevel } from '../utils/rpg';
+import { RPG_CONFIG, getTitleForLevel, getLevelFromXP } from '../utils/rpg';
 
 export default function RankingBoard({ type, empireFilter, compact = false }) {
     const [topUsers, setTopUsers] = useState([]);
     const [topEmpires, setTopEmpires] = useState([]);
-    const [empireMembers, setEmpireMembers] = useState([]); // 내 제국 멤버
+    const [empireMembers, setEmpireMembers] = useState([]);
     const [allUsers, setAllUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showMore, setShowMore] = useState(false);
-    const [adminFilter, setAdminFilter] = useState('all'); // 'all' | empire id
+    const [adminFilter, setAdminFilter] = useState('all');
     const [searchName, setSearchName] = useState('');
     const currentUid = auth.currentUser?.uid;
 
     useEffect(() => {
-        const fetchRankings = async () => {
-            setLoading(true);
-            try {
-                const usersRef = collection(db, 'users');
-                const allUserSnap = await getDocs(usersRef);
+        setLoading(true);
 
-                const allUsers = [];
-                let empireTotals = { logreia: 0, visiontium: 0, factoria: 0 };
+        // 랭킹 집계 문서 실시간 구독
+        const unsubRanking = onSnapshot(doc(db, 'stats', 'ranking_top50'), async (snap) => {
+            let globalList = [];
 
-                allUserSnap.forEach(doc => {
-                    const data = doc.data();
-                    const { level } = getLevelFromXP(data.totalXp || 0);
-                    allUsers.push({ id: doc.id, ...data, computedLevel: level });
-                    if (data.empireId && empireTotals[data.empireId] !== undefined) {
-                        empireTotals[data.empireId] += (data.totalXp || 0);
-                    }
-                });
-
-                // 전체 순위 Top 10
-                const sorted = [...allUsers].sort((a, b) => (b.totalXp || 0) - (a.totalXp || 0));
-                setAllUsers(sorted);
-                setTopUsers(sorted.slice(0, 10));
-
-                // 제국별 멤버 (내 제국 필터)
-                if (empireFilter) {
-                    const members = sorted.filter(u => u.empireId === empireFilter);
-                    setEmpireMembers(members.slice(0, 10));
+            if (snap.exists() && (snap.data().global || []).length > 0) {
+                const data = snap.data();
+                globalList = (data.global || []).map(u => ({
+                    ...u,
+                    id: u.uid,
+                    displayName: u.name,
+                    totalXp: u.xp,
+                    computedLevel: u.level,
+                    empireId: u.empire,
+                }));
+            } else {
+                // Fallback: ranking_top50이 비어있으면 users 컬렉션에서 직접 조회
+                try {
+                    const usersSnap = await getDocs(query(collection(db, 'users'), orderBy('totalXp', 'desc'), fbLimit(50)));
+                    globalList = usersSnap.docs
+                        .filter(d => d.data().totalXp > 0)
+                        .map(d => {
+                            const u = d.data();
+                            const lvl = getLevelFromXP(u.totalXp || 0);
+                            return {
+                                id: d.id,
+                                uid: d.id,
+                                displayName: u.displayName || '이름 없음',
+                                totalXp: u.totalXp || 0,
+                                computedLevel: lvl.level,
+                                empireId: u.empireId || null,
+                            };
+                        });
+                } catch (e) {
+                    console.warn('Fallback ranking query failed:', e);
                 }
-
-                // 제국 순위
-                const empireArray = Object.entries(RPG_CONFIG.EMPIRES).map(([id, emp]) => ({
-                    id,
-                    ...emp,
-                    totalXp: empireTotals[id]
-                })).sort((a, b) => b.totalXp - a.totalXp);
-
-                setTopEmpires(empireArray);
-            } catch (error) {
-                console.error("Error fetching rankings", error);
-            } finally {
-                setLoading(false);
             }
-        };
 
-        fetchRankings();
+            setAllUsers(globalList);
+            setTopUsers(globalList.slice(0, 10));
+
+            if (empireFilter) {
+                const members = globalList.filter(u => u.empireId === empireFilter);
+                setEmpireMembers(members.slice(0, 10));
+            }
+
+            setLoading(false);
+        });
+
+        // 제국 총 XP 집계 문서 실시간 구독
+        const unsubEmpire = onSnapshot(doc(db, 'stats', 'empire_totals'), (snap) => {
+            if (!snap.exists()) return;
+            const data = snap.data();
+
+            const empireArray = Object.entries(RPG_CONFIG.EMPIRES).map(([id, emp]) => ({
+                id,
+                ...emp,
+                totalXp: data[id]?.xp || 0,
+            })).sort((a, b) => b.totalXp - a.totalXp);
+
+            setTopEmpires(empireArray);
+        });
+
+        return () => { unsubRanking(); unsubEmpire(); };
     }, [type, empireFilter]);
 
     if (loading) {
@@ -183,9 +203,9 @@ export default function RankingBoard({ type, empireFilter, compact = false }) {
                                                     <div className="text-lg font-black mb-1" style={{
                                                         color: idx === 0 ? '#fbbf24' : idx === 1 ? '#9ca3af' : idx === 2 ? '#b45309' : '#6b7280'
                                                     }}>
-                                                        {idx === 0 ? '\ud83d\udc51' : idx + 1}
+                                                        {idx === 0 ? '👑' : idx + 1}
                                                     </div>
-                                                    <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{user.displayName || '\uc774\ub984 \uc5c6\uc74c'}</p>
+                                                    <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{user.displayName || '이름 없음'}</p>
                                                     <p className="text-[10px] text-slate-400 dark:text-gray-500 font-bold">{getTitleForLevel(user.computedLevel || 1)}</p>
                                                     <p className="text-xs font-bold font-mono mt-1" style={{ color: empireColor || '#2bee4b' }}>{user.computedLevel || 1} LV</p>
                                                 </div>
@@ -224,7 +244,6 @@ export default function RankingBoard({ type, empireFilter, compact = false }) {
 
             {/* 명예의 전당: 전체 통합 순위 */}
             {type === 'global' && (() => {
-                // 관리자 필터 적용
                 const filtered = allUsers.filter(u => {
                     const matchEmpire = adminFilter === 'all' || u.empireId === adminFilter;
                     const matchName = !searchName.trim() || (u.displayName || '').toLowerCase().includes(searchName.toLowerCase());
@@ -260,7 +279,7 @@ export default function RankingBoard({ type, empireFilter, compact = false }) {
                             제국 전력 현황
                         </h3>
                         <div className="space-y-2 relative z-10">
-                            {topEmpires.map((emp, idx) => {
+                            {topEmpires.map((emp) => {
                                 const maxXp = topEmpires[0]?.totalXp || 1;
                                 const pct = Math.round((emp.totalXp / maxXp) * 100);
                                 return (
@@ -295,7 +314,7 @@ export default function RankingBoard({ type, empireFilter, compact = false }) {
                                     {displayUsers.slice(0, 3).map((user, idx) => {
                                         const isMe = user.id === currentUid;
                                         const medalColors = ['#fbbf24', '#9ca3af', '#b45309'];
-                                        const medalIcons = ['\ud83e\uddc1', '\ud83e\udd48', '\ud83e\udd49'];
+                                        const medalIcons = ['🥇', '🥈', '🥉'];
                                         const empireColor = RPG_CONFIG.EMPIRES[user.empireId]?.color;
                                         return (
                                             <div key={user.id} className={`relative p-4 rounded-2xl border-2 text-center transition-all
@@ -306,7 +325,7 @@ export default function RankingBoard({ type, empireFilter, compact = false }) {
                                                     style={{ borderColor: medalColors[idx] }}>
                                                     <span className="material-symbols-outlined text-slate-400 dark:text-gray-400 text-lg">person</span>
                                                 </div>
-                                                <p className="text-xs font-black text-slate-800 dark:text-white truncate">{user.displayName || '\uc774\ub984 \uc5c6\uc74c'}</p>
+                                                <p className="text-xs font-black text-slate-800 dark:text-white truncate">{user.displayName || '이름 없음'}</p>
                                                 <p className="text-[9px] text-slate-400 dark:text-gray-500 font-bold mt-0.5">{getTitleForLevel(user.computedLevel || 1)}</p>
                                                 {user.empireId && (
                                                     <span className="inline-block mt-1 text-[8px] font-black px-1.5 py-0.5 rounded border"
@@ -341,7 +360,13 @@ export default function RankingBoard({ type, empireFilter, compact = false }) {
                                     </>
                                 )}
                                 {displayUsers.length === 0 && (
-                                    <div className="text-center py-6 text-slate-400 dark:text-gray-500 text-xs">검색 결과가 없습니다.</div>
+                                    <div className="text-center py-8 text-slate-400 dark:text-gray-500 text-xs space-y-2">
+                                        <span className="material-symbols-outlined text-3xl opacity-30">military_tech</span>
+                                        <p>{searchName.trim() || adminFilter !== 'all' ? '검색 결과가 없습니다.' : '아직 등록된 학자가 없습니다.'}</p>
+                                        {!searchName.trim() && adminFilter === 'all' && (
+                                            <p className="text-[10px] text-slate-300 dark:text-gray-600">첫 독서 기록을 완료하면 이곳에 등록됩니다!</p>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         ) : (

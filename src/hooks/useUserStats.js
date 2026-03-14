@@ -49,18 +49,22 @@ export function useUserStats() {
                         title: getTitleForLevel(level)
                     });
                 } else {
-                    // Initialize user if not exists
+                    // Initialize user if not exists (로그인했지만 Firestore 문서가 없는 경우)
                     const initialData = {
                         uid: user.uid,
-                        displayName: `New Scholar`,
+                        displayName: user.displayName || user.email?.split('@')[0] || 'New Scholar',
+                        email: user.email || '',
                         totalXp: 0,
-                        gold: 0,
+                        gold: 100,
                         streak: 0,
+                        level: 1,
+                        currentXp: 0,
+                        xpLimit: 500,
                         lastRead: null,
-                        joinedAt: serverTimestamp(),
-                        classId: 'scholar', // default
+                        onboardingCompleted: false,
+                        createdAt: serverTimestamp(),
                     };
-                    setDoc(userRef, initialData);
+                    setDoc(userRef, initialData, { merge: true });
                 }
                 setLoading(false);
             });

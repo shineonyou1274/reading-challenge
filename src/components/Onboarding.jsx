@@ -1,6 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
+
+const SCHOLAR_DIALOGUE = [
+    "오래 기다렸습니다, 젊은 학자여. 나는 황실 서고의 수석 기록관입니다.",
+    "이곳은 '황실 기록소'... 책을 읽고, 경험치를 쌓아 제국을 세우는 곳이지요.",
+    "자, 먼저 당신의 성향을 파악해 볼까요?",
+];
 
 const QUIZ = [
     {
@@ -47,12 +53,34 @@ function calcEmpire(answers) {
 }
 
 export default function Onboarding({ user, onComplete }) {
-    const [step, setStep] = useState(1);        // 1=퀴즈, 2=결과, 3=목표, 4=완료
+    const [step, setStep] = useState(0);        // 0=스토리, 1=퀴즈, 2=결과, 3=목표, 4=완료
     const [quizIndex, setQuizIndex] = useState(0);
     const [answers, setAnswers] = useState({});
     const [selectedEmpire, setSelectedEmpire] = useState(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [goal, setGoal] = useState('habit');
+
+    // Step 0: 타이핑 효과
+    const [dialogueIndex, setDialogueIndex] = useState(0);
+    const [dialogueText, setDialogueText] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
+
+    useEffect(() => {
+        if (step !== 0) return;
+        setIsTyping(true);
+        setDialogueText('');
+        const text = SCHOLAR_DIALOGUE[dialogueIndex];
+        let i = 0;
+        const interval = setInterval(() => {
+            setDialogueText(text.slice(0, i + 1));
+            i++;
+            if (i >= text.length) {
+                clearInterval(interval);
+                setIsTyping(false);
+            }
+        }, 40);
+        return () => clearInterval(interval);
+    }, [dialogueIndex, step]);
 
     const handleAnswer = (empire) => {
         const q = QUIZ[quizIndex];
@@ -97,10 +125,58 @@ export default function Onboarding({ user, onComplete }) {
             <div className="max-w-2xl mx-auto w-full pt-10 md:pt-20 space-y-12">
                 {/* 진행 표시 */}
                 <div className="flex justify-center gap-3">
-                    {[1, 2, 3, 4].map(i => (
+                    {[0, 1, 2, 3, 4].map(i => (
                         <div key={i} className={`h-1.5 rounded-full transition-all duration-700 ${step >= i ? 'w-14 bg-[#2bee4b] shadow-[0_0_12px_#2bee4b]' : 'w-4 bg-[#2bee4b]/10'}`} />
                     ))}
                 </div>
+
+                {/* Step 0: 수석 기록관 스토리 */}
+                {step === 0 && (
+                    <div className="space-y-8 animate-book text-center">
+                        <div className="space-y-3">
+                            <span className="material-symbols-outlined text-5xl text-[#2bee4b] opacity-60" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                auto_stories
+                            </span>
+                            <h2 className="text-2xl font-black text-white tracking-[0.15em] uppercase">
+                                황실 서고
+                            </h2>
+                        </div>
+
+                        {/* 대화 말풍선 */}
+                        <div className="bg-black/30 border border-[#32673b] rounded-2xl p-6 mx-auto max-w-sm text-left">
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className="material-symbols-outlined text-[#2bee4b]" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+                                <span className="text-[#2bee4b] font-bold text-xs uppercase tracking-wider">수석 기록관</span>
+                            </div>
+                            <p className="text-white text-sm leading-relaxed min-h-[3em]">
+                                "{dialogueText}"
+                                {isTyping && <span className="animate-pulse ml-0.5">|</span>}
+                            </p>
+                        </div>
+
+                        {/* 대화 진행 표시 */}
+                        <div className="flex justify-center gap-2">
+                            {SCHOLAR_DIALOGUE.map((_, i) => (
+                                <div key={i} className={`size-2 rounded-full transition-all ${i < dialogueIndex ? 'bg-[#2bee4b]' : i === dialogueIndex ? 'bg-[#2bee4b] scale-150' : 'bg-white/10'}`} />
+                            ))}
+                        </div>
+
+                        {!isTyping && (
+                            <button
+                                onClick={() => {
+                                    if (dialogueIndex < SCHOLAR_DIALOGUE.length - 1) {
+                                        setDialogueIndex(dialogueIndex + 1);
+                                    } else {
+                                        setStep(1);
+                                    }
+                                }}
+                                className="px-8 py-3 bg-[#2bee4b]/20 border border-[#2bee4b]/40 text-[#2bee4b] font-bold rounded-xl text-sm uppercase tracking-wider hover:bg-[#2bee4b]/30 transition-all"
+                            >
+                                {dialogueIndex < SCHOLAR_DIALOGUE.length - 1 ? '다음' : '성향 분석 시작'}
+                            </button>
+                        )}
+                    </div>
+                )}
 
                 {/* Step 1: 성향 퀴즈 */}
                 {step === 1 && !isAnalyzing && (

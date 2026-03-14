@@ -91,24 +91,21 @@ export function checkNewAchievements(sessionData, newStats, alreadyEarnedIds) {
 }
 
 // ───────────────────────────────────────────────────────────────────
-// 보물상자 보상 정의
+// 보물상자 보상 정의 (레거시 — 호환용 유지)
 // ───────────────────────────────────────────────────────────────────
 
 const CHEST_REWARDS = [
-    // common (60%)
     { xp: 30, gold: 0, label: '보너스 경험치', icon: '⭐', rarity: 'common', color: '#9ca3af' },
     { xp: 50, gold: 0, label: '행운의 경험치', icon: '💫', rarity: 'common', color: '#9ca3af' },
     { xp: 0, gold: 20, label: '황금 동전', icon: '🪙', rarity: 'common', color: '#9ca3af' },
-    // uncommon (30%)
     { xp: 0, gold: 45, label: '황금 주머니', icon: '💰', rarity: 'uncommon', color: '#22c55e' },
     { xp: 80, gold: 0, label: '고귀한 경험치', icon: '✨', rarity: 'uncommon', color: '#22c55e' },
     { xp: 50, gold: 25, label: '황금 복주머니', icon: '🎁', rarity: 'uncommon', color: '#22c55e' },
-    // rare (10%)
     { xp: 120, gold: 60, label: '전설의 보물', icon: '💎', rarity: 'rare', color: '#a855f7' },
     { xp: 0, gold: 120, label: '왕의 보물창고', icon: '👑', rarity: 'rare', color: '#f59e0b' },
 ];
 
-const RARITY_LABELS = { common: '일반', uncommon: '희귀', rare: '전설' };
+const RARITY_LABELS = { common: '일반', uncommon: '희귀', rare: '전설', legendary: '신화' };
 
 export function getRandomChestReward() {
     const roll = Math.random();
@@ -116,7 +113,74 @@ export function getRandomChestReward() {
     if (roll < 0.6) pool = CHEST_REWARDS.filter(r => r.rarity === 'common');
     else if (roll < 0.9) pool = CHEST_REWARDS.filter(r => r.rarity === 'uncommon');
     else pool = CHEST_REWARDS.filter(r => r.rarity === 'rare');
-
     const reward = pool[Math.floor(Math.random() * pool.length)];
     return { ...reward, rarityLabel: RARITY_LABELS[reward.rarity] };
+}
+
+// ───────────────────────────────────────────────────────────────────
+// 황실 유물 수집 시스템 (Collectible Relics)
+// ───────────────────────────────────────────────────────────────────
+
+export const RELIC_RARITY = {
+    common:    { label: '일반',   color: '#9ca3af', chance: 0.15 },   // 15% per session
+    uncommon:  { label: '희귀',   color: '#22c55e', chance: 0.06 },   // 6%
+    rare:      { label: '전설',   color: '#a855f7', chance: 0.02 },   // 2%
+    legendary: { label: '신화',   color: '#f59e0b', chance: 0.005 },  // 0.5%
+};
+
+export const RELICS = [
+    // ─── 일반 (Common) ──────────────────────────────────────
+    { id: 'quill_pen',       name: '황실 깃펜',       icon: '🪶', rarity: 'common',    desc: '황제가 칙령을 내릴 때 사용한 깃펜' },
+    { id: 'ink_bottle',      name: '고대 잉크병',     icon: '🫙', rarity: 'common',    desc: '1000년 된 잉크가 담긴 유리병' },
+    { id: 'old_bookmark',    name: '비단 책갈피',     icon: '🔖', rarity: 'common',    desc: '황실 서고에서 발견된 비단 책갈피' },
+    { id: 'reading_stone',   name: '독서석',          icon: '🪨', rarity: 'common',    desc: '집중력을 높여준다는 신비한 돌' },
+    { id: 'candle_wax',      name: '촛농 인장',       icon: '🕯️', rarity: 'common',    desc: '황실 서신에 사용된 밀랍 인장' },
+    { id: 'old_coin',        name: '고대 동전',       icon: '🪙', rarity: 'common',    desc: '로그라이아 초대 황제의 동전' },
+
+    // ─── 희귀 (Uncommon) ─────────────────────────────────────
+    { id: 'crystal_lens',    name: '수정 돋보기',     icon: '🔍', rarity: 'uncommon',  desc: '숨겨진 문자를 읽을 수 있는 마법 렌즈' },
+    { id: 'star_compass',    name: '별자리 나침반',   icon: '🧭', rarity: 'uncommon',  desc: '지혜의 길을 안내하는 나침반' },
+    { id: 'phoenix_feather', name: '불사조 깃털',     icon: '🪶', rarity: 'uncommon',  desc: '전설의 불사조에서 떨어진 황금 깃털' },
+    { id: 'time_hourglass',  name: '시간의 모래시계', icon: '⏳', rarity: 'uncommon',  desc: '독서 시간을 되돌릴 수 있다는 전설의 모래시계' },
+    { id: 'wisdom_scroll',   name: '지혜의 두루마리', icon: '📜', rarity: 'uncommon',  desc: '고대 현자의 가르침이 적힌 두루마리' },
+
+    // ─── 전설 (Rare) ─────────────────────────────────────────
+    { id: 'dragon_seal',     name: '용의 인장',       icon: '🐉', rarity: 'rare',      desc: '황실의 최고 비밀 문서에만 찍힌 용의 인장' },
+    { id: 'moonstone_ring',  name: '달빛 반지',       icon: '💍', rarity: 'rare',      desc: '달빛 아래서만 빛나는 마법의 반지' },
+    { id: 'ancient_map',     name: '고대 지도',       icon: '🗺️', rarity: 'rare',      desc: '잊혀진 황실 도서관의 위치가 표시된 지도' },
+
+    // ─── 신화 (Legendary) ────────────────────────────────────
+    { id: 'emperor_crown',   name: '황제의 왕관',     icon: '👑', rarity: 'legendary',  desc: '전설 속 초대 황제가 쓴 왕관. 모든 지혜가 깃들어 있다' },
+    { id: 'book_of_eternity',name: '영원의 서',       icon: '📕', rarity: 'legendary',  desc: '읽는 자에게 영원한 지혜를 부여한다는 금서' },
+];
+
+/**
+ * 독서 기록 후 랜덤 유물 드롭 판정
+ * @param {number} elapsedTime - 독서 시간(초)
+ * @returns {{ relic: object, rarity: object } | null}
+ */
+export function rollRelicDrop(elapsedTime) {
+    // 최소 5분 이상 독서해야 드롭 가능
+    if (elapsedTime < 300) return null;
+
+    // 독서 시간 보너스: 30분 이상이면 확률 1.5배, 60분 이상이면 2배
+    let bonusMultiplier = 1;
+    if (elapsedTime >= 3600) bonusMultiplier = 2;
+    else if (elapsedTime >= 1800) bonusMultiplier = 1.5;
+
+    // 높은 등급부터 판정 (legendary → rare → uncommon → common)
+    const rarities = ['legendary', 'rare', 'uncommon', 'common'];
+    for (const rarityKey of rarities) {
+        const chance = RELIC_RARITY[rarityKey].chance * bonusMultiplier;
+        if (Math.random() < chance) {
+            const pool = RELICS.filter(r => r.rarity === rarityKey);
+            const relic = pool[Math.floor(Math.random() * pool.length)];
+            return {
+                relic,
+                rarityInfo: RELIC_RARITY[rarityKey],
+                rarityLabel: RARITY_LABELS[rarityKey],
+            };
+        }
+    }
+    return null;
 }

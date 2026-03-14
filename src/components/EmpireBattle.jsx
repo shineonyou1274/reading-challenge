@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { RPG_CONFIG } from '../utils/rpg';
@@ -6,6 +6,7 @@ import { RPG_CONFIG } from '../utils/rpg';
 /**
  * 제국 대결 이벤트 컴포넌트
  * 이번 주 제국별 총 독서 시간(분) 집계 및 순위 표시
+ * public_feed의 empireId 필드를 직접 사용 (users 전체 읽기 제거)
  */
 export default function EmpireBattle() {
     const [empireStats, setEmpireStats] = useState([]);
@@ -18,22 +19,16 @@ export default function EmpireBattle() {
         try {
             // 이번 주 월요일 00:00 계산
             const now = new Date();
-            const dayOfWeek = now.getDay(); // 0=일, 1=월, ...
+            const dayOfWeek = now.getDay();
             const monday = new Date(now);
             monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
             monday.setHours(0, 0, 0, 0);
             const mondayTs = Timestamp.fromDate(monday);
 
-            // 이번 주 피드 가져오기
+            // 이번 주 피드 가져오기 (empireId가 피드에 포함되어 있으므로 users 조회 불필요)
             const feedRef = collection(db, 'public_feed');
             const q = query(feedRef, where('timestamp', '>=', mondayTs), where('isChat', '==', false));
             const snap = await getDocs(q);
-
-            // 유저별 제국 정보 캐시
-            const userEmpireCache = {};
-            const usersRef = collection(db, 'users');
-            const usersSnap = await getDocs(usersRef);
-            usersSnap.forEach(d => { userEmpireCache[d.id] = d.data().empireId; });
 
             // 제국별 집계
             const stats = {};
@@ -43,7 +38,7 @@ export default function EmpireBattle() {
 
             snap.forEach(d => {
                 const data = d.data();
-                const empireId = userEmpireCache[data.uid];
+                const empireId = data.empireId;
                 if (empireId && stats[empireId]) {
                     stats[empireId].sessions += 1;
                     stats[empireId].minutes += Math.floor((data.elapsedTime || 0) / 60);

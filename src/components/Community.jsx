@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react';
-import { collection, query, orderBy, limit, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, doc, getDoc, updateDoc, arrayUnion, deleteField, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { RPG_CONFIG } from '../utils/rpg';
 import EmpireWarMap from './EmpireWarMap';
 import RankingBoard from './RankingBoard';
 import ScholarBanner from './ScholarBanner';
 import EmpireBattle from './EmpireBattle';
+import ContextTip from './ContextTip';
+
+const REPORT_REASONS = [
+    '부적절한 내용',
+    '욕설/비방',
+    '스팸/광고',
+    '개인정보 노출',
+    '기타',
+];
 
 export default function Community({ darkMode, stats, onShopPurchase }) {
     const [activities, setActivities] = useState([]);
@@ -13,8 +22,14 @@ export default function Community({ darkMode, stats, onShopPurchase }) {
     const [activeTab, setActiveTab] = useState('empire');
     const [currentUserEmpire, setCurrentUserEmpire] = useState(null);
     const [visibleCount, setVisibleCount] = useState(10);
-    const [userPopup, setUserPopup] = useState(null); // { userId, userName, userTitle, records }
+    const [userPopup, setUserPopup] = useState(null);
     const [showEmpireDetail, setShowEmpireDetail] = useState(false);
+    const [reportTarget, setReportTarget] = useState(null); // { id, userName }
+    const [reportReason, setReportReason] = useState('');
+    const [reportSubmitting, setReportSubmitting] = useState(false);
+    const [blockedUsers, setBlockedUsers] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('rrq_blocked') || '[]'); } catch { return []; }
+    });
 
     // 현재 유저의 제국 정보 가져오기
     useEffect(() => {
@@ -64,10 +79,81 @@ export default function Community({ darkMode, stats, onShopPurchase }) {
         { id: 'global', label: '명예의 전당', icon: 'military_tech' },
     ];
 
+    // 신고 제출
+    const handleReport = async () => {
+        if (!reportTarget || !reportReason || !auth.currentUser) return;
+        setReportSubmitting(true);
+        try {
+            const feedDocRef = doc(db, 'public_feed', reportTarget.id);
+            await updateDoc(feedDocRef, {
+                reports: arrayUnion({
+                    uid: auth.currentUser.uid,
+                    reason: reportReason,
+                    timestamp: Date.now(),
+                }),
+            });
+            setReportTarget(null);
+            setReportReason('');
+            alert('신고가 접수되었습니다.');
+        } catch (e) {
+            console.error('Report failed:', e);
+            alert('신고 처리에 실패했습니다.');
+        } finally {
+            setReportSubmitting(false);
+        }
+    };
+
+    // 사용자 차단 (로컬)
+    const handleBlock = (uid) => {
+        if (!uid || uid === auth.currentUser?.uid) return;
+        const updated = [...new Set([...blockedUsers, uid])];
+        setBlockedUsers(updated);
+        localStorage.setItem('rrq_blocked', JSON.stringify(updated));
+        setUserPopup(null);
+    };
+
+    // 차단 해제
+    const handleUnblock = (uid) => {
+        const updated = blockedUsers.filter(id => id !== uid);
+        setBlockedUsers(updated);
+        localStorage.setItem('rrq_blocked', JSON.stringify(updated));
+    };
+
+    // 리액션 (깃펜 흔들기) 토글
+    const handleReaction = async (feedId) => {
+        if (!auth.currentUser) return;
+        const uid = auth.currentUser.uid;
+        const feedItem = activities.find(a => a.id === feedId);
+        const hasReacted = feedItem?.reactions?.[uid];
+        const feedDocRef = doc(db, 'public_feed', feedId);
+        try {
+            if (hasReacted) {
+                await updateDoc(feedDocRef, { [`reactions.${uid}`]: deleteField() });
+            } else {
+                await updateDoc(feedDocRef, { [`reactions.${uid}`]: true });
+                // 본인 글이 아닐 때만 알림 전송
+                if (feedItem?.uid && feedItem.uid !== uid) {
+                    const notifRef = collection(db, 'users', feedItem.uid, 'notifications');
+                    addDoc(notifRef, {
+                        type: 'reaction',
+                        fromUid: uid,
+                        fromName: stats?.displayName || '익명의 학자',
+                        bookTitle: feedItem.bookTitle || '',
+                        feedId,
+                        read: false,
+                        timestamp: serverTimestamp(),
+                    }).catch(e => console.warn('Notification write failed:', e));
+                }
+            }
+        } catch (e) {
+            console.error('Reaction failed:', e);
+        }
+    };
+
     // 유저별 그룹화
     const userGroups = (() => {
         const map = {};
-        activities.filter(a => !a.isChat).forEach(a => {
+        activities.filter(a => !a.isChat && !blockedUsers.includes(a.uid)).forEach(a => {
             const key = a.userId || a.userName || 'unknown';
             if (!map[key]) map[key] = { userId: a.userId, userName: a.userName || '알 수 없음', userTitle: a.userTitle || '학자', empireId: a.empireId, records: [] };
             map[key].records.push(a);
@@ -125,6 +211,12 @@ export default function Community({ darkMode, stats, onShopPurchase }) {
 
             {/* Main Content */}
             <main className="flex flex-col gap-6 px-4 py-6 max-w-lg mx-auto">
+                <ContextTip
+                    tipKey="feed"
+                    icon="📜"
+                    title="수석 기록관의 안내"
+                    message="이곳은 황실 독서 피드입니다. 다른 학자들의 기록을 살피고 ✍️ 깃펜을 흔들어 응원할 수 있습니다. 제국 전쟁 탭에서 소속 제국의 전력도 확인해보세요!"
+                />
                 {activeTab === 'empire' ? (
                     <div className="space-y-4">
                         <EmpireBattle />
@@ -193,7 +285,32 @@ export default function Community({ darkMode, stats, onShopPurchase }) {
                                                 {/* 시간 */}
                                                 <span className="text-[10px] text-slate-400 dark:text-gray-600 shrink-0 ml-auto">{timeAgo(latest?.timestamp)}</span>
 
+                                                {/* 리액션 버튼 */}
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleReaction(latest.id); }}
+                                                    className="shrink-0 flex items-center gap-0.5 px-2 py-1 rounded-full hover:bg-stone-100 dark:hover:bg-white/10 transition-colors"
+                                                    title="깃펜 흔들기"
+                                                >
+                                                    <span className={`text-sm ${latest?.reactions?.[auth.currentUser?.uid] ? '' : 'grayscale opacity-40'}`}>✍️</span>
+                                                    {Object.keys(latest?.reactions || {}).length > 0 && (
+                                                        <span className="text-[10px] font-bold text-slate-400 dark:text-gray-500">
+                                                            {Object.keys(latest.reactions).length}
+                                                        </span>
+                                                    )}
+                                                </button>
+
                                                 <span className="material-symbols-outlined text-slate-300 dark:text-gray-600 text-sm shrink-0">chevron_right</span>
+
+                                                {/* 신고 버튼 */}
+                                                {latest?.uid !== auth.currentUser?.uid && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setReportTarget({ id: latest.id, userName: user.userName }); }}
+                                                        className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center hover:bg-stone-100 dark:hover:bg-white/10 transition-colors"
+                                                        title="신고"
+                                                    >
+                                                        <span className="material-symbols-outlined text-stone-300 dark:text-gray-600 text-sm">flag</span>
+                                                    </button>
+                                                )}
                                             </div>
                                         </article>
                                     );
@@ -223,6 +340,46 @@ export default function Community({ darkMode, stats, onShopPurchase }) {
                 <span className="material-symbols-outlined text-2xl">arrow_upward</span>
             </button>
 
+            {/* 신고 모달 */}
+            {reportTarget && (
+                <div className="fixed inset-0 z-[600] flex items-center justify-center p-4" onClick={() => setReportTarget(null)}>
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                    <div className="relative bg-white dark:bg-[#0d1f0f] rounded-[24px] shadow-2xl border border-stone-200 dark:border-[#2a5530] max-w-sm w-full p-6"
+                        onClick={e => e.stopPropagation()}>
+                        <h3 className="font-black text-slate-900 dark:text-white text-base mb-1">게시물 신고</h3>
+                        <p className="text-xs text-slate-400 dark:text-gray-500 mb-4">{reportTarget.userName}님의 게시물을 신고합니다.</p>
+
+                        <div className="space-y-2 mb-4">
+                            {REPORT_REASONS.map(reason => (
+                                <button
+                                    key={reason}
+                                    onClick={() => setReportReason(reason)}
+                                    className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${
+                                        reportReason === reason
+                                            ? 'bg-red-50 dark:bg-red-500/10 border-red-300 dark:border-red-500/30 text-red-600 dark:text-red-400'
+                                            : 'bg-stone-50 dark:bg-black/20 border-stone-100 dark:border-white/5 text-slate-600 dark:text-gray-400 hover:bg-stone-100 dark:hover:bg-white/5'
+                                    }`}
+                                >
+                                    {reason}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="flex gap-2">
+                            <button onClick={() => { setReportTarget(null); setReportReason(''); }}
+                                className="flex-1 py-2.5 rounded-xl border border-stone-200 dark:border-white/10 text-sm font-bold text-slate-500 dark:text-gray-400">
+                                취소
+                            </button>
+                            <button onClick={handleReport}
+                                disabled={!reportReason || reportSubmitting}
+                                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold disabled:opacity-40 transition-opacity">
+                                {reportSubmitting ? '처리 중...' : '신고하기'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* 유저 팝업 (바텀시트) */}
             {userPopup && (
                 <div className="fixed inset-0 z-[500] flex items-center justify-center p-4" onClick={() => setUserPopup(null)}>
@@ -242,10 +399,25 @@ export default function Community({ darkMode, stats, onShopPurchase }) {
                                     <p className="text-[10px] text-slate-400 dark:text-gray-500 uppercase tracking-wider">{userPopup.userTitle} · {userPopup.records.length}회 기록</p>
                                 </div>
                             </div>
-                            <button onClick={() => setUserPopup(null)}
-                                className="w-8 h-8 rounded-full bg-stone-100 dark:bg-white/10 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-sm text-slate-500 dark:text-gray-400">close</span>
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {userPopup.userId && userPopup.userId !== auth.currentUser?.uid && (
+                                    blockedUsers.includes(userPopup.userId) ? (
+                                        <button onClick={() => handleUnblock(userPopup.userId)}
+                                            className="text-[10px] px-2.5 py-1 rounded-full border border-stone-200 dark:border-white/10 text-slate-400 dark:text-gray-500 font-bold hover:bg-stone-50 dark:hover:bg-white/5">
+                                            차단 해제
+                                        </button>
+                                    ) : (
+                                        <button onClick={() => { if (confirm(`${userPopup.userName}님을 차단하시겠습니까?\n차단하면 이 사용자의 글이 보이지 않습니다.`)) handleBlock(userPopup.userId); }}
+                                            className="text-[10px] px-2.5 py-1 rounded-full border border-red-200 dark:border-red-500/20 text-red-400 font-bold hover:bg-red-50 dark:hover:bg-red-500/10">
+                                            차단
+                                        </button>
+                                    )
+                                )}
+                                <button onClick={() => setUserPopup(null)}
+                                    className="w-8 h-8 rounded-full bg-stone-100 dark:bg-white/10 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-sm text-slate-500 dark:text-gray-400">close</span>
+                                </button>
+                            </div>
                         </div>
                         {/* 기록 목록 */}
                         <div className="overflow-y-auto flex-1 p-4 space-y-2">
@@ -270,6 +442,9 @@ export default function Community({ darkMode, stats, onShopPurchase }) {
                                             <div className="flex items-center gap-2 mt-0.5">
                                                 <span className="text-[10px] text-[#2bee4b] font-bold">{mins}분</span>
                                                 <span className="text-[10px] text-slate-400 dark:text-gray-600">+{r.rewards?.xp || 0} XP</span>
+                                                {Object.keys(r.reactions || {}).length > 0 && (
+                                                    <span className="text-[10px] text-slate-400 dark:text-gray-600 flex items-center gap-0.5">✍️{Object.keys(r.reactions).length}</span>
+                                                )}
                                                 <span className="text-[10px] text-slate-400 dark:text-gray-600 ml-auto">{dateStr}</span>
                                             </div>
                                         </div>

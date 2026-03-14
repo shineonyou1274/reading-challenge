@@ -48,6 +48,7 @@ export default defineConfig({
       workbox: {
         // 빌드 산출물 자동 프리캐싱
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        navigateFallbackDenylist: [/^\/privacy-policy\.html$/, /^\/delete-account\.html$/],
         // 런타임 캐싱 규칙
         runtimeCaching: [
           {

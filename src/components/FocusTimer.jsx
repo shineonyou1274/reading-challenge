@@ -81,7 +81,7 @@ export default function FocusTimer({ elapsedTime, bookTitle, mode, onPause, onSt
                     <span className="text-5xl font-black text-white tabular-nums tracking-tight leading-none">
                         {isGoalMode ? formatTime(remaining) : formatTime(elapsedTime)}
                     </span>
-                    <span className="text-[10px] text-gray-600 uppercase tracking-widest">
+                    <span className="text-[10px] text-gray-400 uppercase tracking-widest">
                         {isGoalMode
                             ? (goalReached ? '🎉 목표 달성!' : '남은 시간')
                             : `경과 ${formatTime(elapsedTime)}`
@@ -89,7 +89,7 @@ export default function FocusTimer({ elapsedTime, bookTitle, mode, onPause, onSt
                     </span>
                     {/* 목표 모드: 경과 시간도 표시 */}
                     {isGoalMode && !goalReached && (
-                        <span className="text-xs text-gray-700 tabular-nums">{formatTime(elapsedTime)} 경과</span>
+                        <span className="text-xs text-gray-400 tabular-nums">{formatTime(elapsedTime)} 경과</span>
                     )}
                     {goalReached && (
                         <span className="text-xs text-yellow-400 animate-pulse mt-1">계속 읽어도 됩니다 ✨</span>
@@ -106,7 +106,7 @@ export default function FocusTimer({ elapsedTime, bookTitle, mode, onPause, onSt
                             style={{ width: `${progress * 100}%`, backgroundColor: modeColor }}
                         />
                     </div>
-                    <p className="text-center text-[10px] text-gray-600 mt-1">
+                    <p className="text-center text-[10px] text-gray-400 mt-1">
                         {Math.round(progress * 100)}%
                     </p>
                 </div>
@@ -120,7 +120,7 @@ export default function FocusTimer({ elapsedTime, bookTitle, mode, onPause, onSt
                             {isRunning ? 'pause' : 'play_arrow'}
                         </span>
                     </div>
-                    <span className="text-[9px] text-gray-600 uppercase tracking-wider">
+                    <span className="text-[9px] text-gray-400 uppercase tracking-wider">
                         {isRunning ? '일시정지' : '재개'}
                     </span>
                 </button>
@@ -132,11 +132,11 @@ export default function FocusTimer({ elapsedTime, bookTitle, mode, onPause, onSt
                     >
                         <span className="material-symbols-outlined text-2xl" style={{ color: modeColor }}>stop_circle</span>
                     </div>
-                    <span className="text-[9px] text-gray-600 uppercase tracking-wider">기록 저장</span>
+                    <span className="text-[9px] text-gray-400 uppercase tracking-wider">기록 저장</span>
                 </button>
             </div>
 
-            <p className="absolute bottom-8 text-[10px] text-gray-800 uppercase tracking-widest z-10">
+            <p className="absolute bottom-8 text-[10px] text-gray-500 uppercase tracking-widest z-10">
                 {isGoalMode ? '🍅 뽀모도로 모드' : '📖 자유 기록 모드'}
             </p>
         </div>

@@ -220,3 +220,105 @@ h4 {
 .animate-glow-shift {
   animation: glow-shift 4s ease-in-out infinite;
 }
+
+/* ─── Aurora theme background ─────────────────────────────── */
+@keyframes aurora-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.aurora-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.12;
+  background: linear-gradient(
+    135deg,
+    #6366f1 0%,
+    #a855f7 20%,
+    #06b6d4 40%,
+    #2bee4b 60%,
+    #ec4899 80%,
+    #6366f1 100%
+  );
+  background-size: 400% 400%;
+  animation: aurora-flow 12s ease-in-out infinite;
+}
+.aurora-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(168, 85, 247, 0.15) 50%,
+    transparent 70%
+  );
+  background-size: 300% 300%;
+  animation: aurora-flow 8s ease-in-out infinite reverse;
+}
+
+/* ─── Midnight theme background ──────────────────────────── */
+.midnight-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.12;
+  background: linear-gradient(
+    135deg,
+    #2d1b69 0%,
+    #4c1d95 25%,
+    #7c3aed 50%,
+    #6d28d9 75%,
+    #2d1b69 100%
+  );
+  background-size: 400% 400%;
+  animation: aurora-flow 14s ease-in-out infinite;
+}
+.midnight-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(124, 58, 237, 0.15) 50%,
+    transparent 70%
+  );
+  background-size: 300% 300%;
+  animation: aurora-flow 9s ease-in-out infinite reverse;
+}
+
+/* ─── Forest theme background ────────────────────────────── */
+.forest-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.12;
+  background: linear-gradient(
+    135deg,
+    #064e3b 0%,
+    #065f46 25%,
+    #047857 50%,
+    #059669 75%,
+    #064e3b 100%
+  );
+  background-size: 400% 400%;
+  animation: aurora-flow 16s ease-in-out infinite;
+}
+.forest-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(4, 120, 87, 0.15) 50%,
+    transparent 70%
+  );
+  background-size: 300% 300%;
+  animation: aurora-flow 10s ease-in-out infinite reverse;
+}

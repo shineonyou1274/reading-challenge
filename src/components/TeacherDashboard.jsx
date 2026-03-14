@@ -4,7 +4,8 @@ import { db } from '../firebase';
 import { RPG_CONFIG, getLevelFromXP, getTitleForLevel } from '../utils/rpg';
 
 export default function TeacherDashboard({ onClose }) {
-    const [activeTab, setActiveTab] = useState('war'); // 'war' | 'students' | 'announce' | 'export'
+    const [activeTab, setActiveTab] = useState('war'); // 'war' | 'students' | 'announce' | 'export' | 'reports'
+    const [reportedPosts, setReportedPosts] = useState([]);
     const [students, setStudents] = useState([]);
     const [warStatus, setWarStatus] = useState({ isActive: true, round: 1, multiplier: 1.0 });
     const [xpMultiplier, setXpMultiplier] = useState(1.0);
@@ -36,6 +37,44 @@ export default function TeacherDashboard({ onClose }) {
         });
         return () => unsub();
     }, []);
+
+    // 신고된 게시물 구독
+    useEffect(() => {
+        const feedRef = collection(db, 'public_feed');
+        const q = query(feedRef, where('reports', '!=', null));
+        const unsub = onSnapshot(q, (snap) => {
+            const posts = snap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .filter(p => (p.reports || []).length > 0)
+                .sort((a, b) => (b.reports?.length || 0) - (a.reports?.length || 0));
+            setReportedPosts(posts);
+        }, () => {
+            // 인덱스 없으면 fallback: 전체 로드 후 필터
+            const unsub2 = onSnapshot(feedRef, (snap) => {
+                const posts = snap.docs
+                    .map(d => ({ id: d.id, ...d.data() }))
+                    .filter(p => (p.reports || []).length > 0)
+                    .sort((a, b) => (b.reports?.length || 0) - (a.reports?.length || 0));
+                setReportedPosts(posts);
+            });
+            return unsub2;
+        });
+        return () => unsub();
+    }, []);
+
+    // 신고 게시물 숨김/삭제
+    const handleHidePost = async (postId) => {
+        if (!window.confirm('이 게시물을 숨기시겠습니까?')) return;
+        await updateDoc(doc(db, 'public_feed', postId), { hidden: true });
+    };
+    const handleDeletePost = async (postId) => {
+        if (!window.confirm('이 게시물을 완전히 삭제하시겠습니까?')) return;
+        await deleteDoc(doc(db, 'public_feed', postId));
+    };
+    const handleDismissReports = async (postId) => {
+        if (!window.confirm('이 게시물의 신고를 무시하시겠습니까?')) return;
+        await updateDoc(doc(db, 'public_feed', postId), { reports: [] });
+    };
 
     // CSV 내보내기
     const handleExportCSV = async () => {
@@ -417,6 +456,18 @@ export default function TeacherDashboard({ onClose }) {
                             공지사항 관리
                         </button>
 
+                        {/* 신고 관리 탭 */}
+                        <button
+                            onClick={() => setActiveTab('reports')}
+                            className={`w-full p-4 rounded-xl text-left font-bold uppercase tracking-wider flex items-center gap-3 transition-all ${activeTab === 'reports' ? 'bg-[#2bee4b] text-[#102213] shadow-[0_0_15px_rgba(43,238,75,0.3)]' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+                        >
+                            <span className="material-symbols-outlined">flag</span>
+                            신고 관리
+                            {reportedPosts.length > 0 && (
+                                <span className="ml-auto bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">{reportedPosts.length}</span>
+                            )}
+                        </button>
+
                         {/* 내보내기 탭 */}
                         <button
                             onClick={() => setActiveTab('export')}
@@ -715,6 +766,81 @@ export default function TeacherDashboard({ onClose }) {
                     )}
 
                     {/* 📊 데이터 내보내기 탭 */}
+                    {activeTab === 'reports' && (
+                        <div className="max-w-2xl space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                            <h2 className="text-2xl font-black text-white flex items-center gap-3">
+                                <span className="material-symbols-outlined text-red-400" style={{ fontVariationSettings: "'FILL' 1" }}>flag</span>
+                                신고된 게시물
+                                {reportedPosts.length > 0 && (
+                                    <span className="text-sm font-bold text-red-400 bg-red-500/10 px-3 py-1 rounded-full">{reportedPosts.length}건</span>
+                                )}
+                            </h2>
+
+                            {reportedPosts.length === 0 ? (
+                                <div className="bg-[#1a331d] border border-[#32673b] rounded-3xl p-12 text-center">
+                                    <span className="material-symbols-outlined text-5xl text-gray-600 mb-4">verified</span>
+                                    <p className="text-gray-400 font-bold">신고된 게시물이 없습니다</p>
+                                    <p className="text-gray-600 text-sm mt-1">깨끗한 커뮤니티입니다!</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {reportedPosts.map(post => (
+                                        <div key={post.id} className="bg-[#1a331d] border border-[#32673b] rounded-2xl overflow-hidden">
+                                            {/* 게시물 정보 */}
+                                            <div className="p-5">
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div>
+                                                        <p className="text-white font-bold">{post.userName || '알 수 없음'}</p>
+                                                        <p className="text-gray-500 text-xs">{post.bookTitle || '제목 없음'}</p>
+                                                    </div>
+                                                    <span className="bg-red-500/10 text-red-400 text-[10px] font-black px-2.5 py-1 rounded-full border border-red-500/20">
+                                                        신고 {(post.reports || []).length}회
+                                                    </span>
+                                                </div>
+
+                                                {post.note && (
+                                                    <div className="bg-black/20 rounded-xl p-3 mb-3 border border-white/5">
+                                                        <p className="text-gray-300 text-sm italic">"{post.note}"</p>
+                                                    </div>
+                                                )}
+
+                                                {/* 신고 사유 목록 */}
+                                                <div className="space-y-1.5 mb-4">
+                                                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">신고 사유</p>
+                                                    {(post.reports || []).map((r, i) => (
+                                                        <div key={i} className="flex items-center gap-2 text-xs text-gray-400">
+                                                            <span className="text-red-400">•</span>
+                                                            {r.reason}
+                                                            <span className="text-gray-600 text-[10px] ml-auto">
+                                                                {new Date(r.timestamp).toLocaleDateString('ko-KR')}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* 액션 버튼 */}
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => handleDismissReports(post.id)}
+                                                        className="flex-1 py-2.5 rounded-xl border border-white/10 text-gray-400 text-xs font-bold hover:bg-white/5 transition-colors">
+                                                        신고 무시
+                                                    </button>
+                                                    <button onClick={() => handleHidePost(post.id)}
+                                                        className="flex-1 py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-bold hover:bg-orange-500/20 transition-colors">
+                                                        숨기기
+                                                    </button>
+                                                    <button onClick={() => handleDeletePost(post.id)}
+                                                        className="flex-1 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold hover:bg-red-500/20 transition-colors">
+                                                        삭제
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {activeTab === 'export' && (
                         <div className="max-w-2xl space-y-8 animate-in fade-in zoom-in-95 duration-300">
                             <h2 className="text-2xl font-black text-white flex items-center gap-3">

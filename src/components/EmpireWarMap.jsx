@@ -1,48 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
-import { RPG_CONFIG } from '../utils/rpg';
 
 export default function EmpireWarMap() {
-    // Initial state with 0 scores
     const [territories, setTerritories] = useState({
-        logreia: { score: 0, percent: 33, label: '로그라이아', color: '#fbbf24' },   // Amber
-        visiontium: { score: 0, percent: 33, label: '비전티움', color: '#c084fc' }, // Purple
-        factoria: { score: 0, percent: 34, label: '팩토리아', color: '#22d3ee' },   // Cyan
+        logreia: { score: 0, percent: 33, label: '로그라이아', color: '#fbbf24' },
+        visiontium: { score: 0, percent: 33, label: '비전티움', color: '#c084fc' },
+        factoria: { score: 0, percent: 34, label: '팩토리아', color: '#22d3ee' },
     });
 
     const [winningEmpire, setWinningEmpire] = useState('logreia');
 
     useEffect(() => {
-        // Real-time listener for ALL users to aggregate empire scores
-        // Note: For large scale apps, use a dedicated 'stats' document updated via Cloud Functions
-        const q = query(collection(db, 'users'));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const newScores = {
-                logreia: 0,
-                visiontium: 0,
-                factoria: 0
+        // 집계 문서 1개에 onSnapshot — 실시간 + 비용 1 read/변경
+        const unsubscribe = onSnapshot(doc(db, 'stats', 'empire_totals'), (snapshot) => {
+            if (!snapshot.exists()) return;
+            const data = snapshot.data();
+
+            const scores = {
+                logreia: data.logreia?.xp || 0,
+                visiontium: data.visiontium?.xp || 0,
+                factoria: data.factoria?.xp || 0,
             };
 
-            let totalServerXp = 0;
-
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                if (data.empireId && newScores[data.empireId] !== undefined) {
-                    const xp = data.totalXp || 0;
-                    newScores[data.empireId] += xp;
-                    totalServerXp += xp;
-                }
-            });
-
-            // Calculate percentages
-            // If total is 0, give equal share for map visualization
-            const safeTotal = totalServerXp || 1;
+            const total = scores.logreia + scores.visiontium + scores.factoria;
+            const safeTotal = total || 1;
 
             setTerritories(prev => ({
-                logreia: { ...prev.logreia, score: newScores.logreia, percent: totalServerXp ? Math.round((newScores.logreia / safeTotal) * 100) : 33 },
-                visiontium: { ...prev.visiontium, score: newScores.visiontium, percent: totalServerXp ? Math.round((newScores.visiontium / safeTotal) * 100) : 33 },
-                factoria: { ...prev.factoria, score: newScores.factoria, percent: totalServerXp ? Math.round((newScores.factoria / safeTotal) * 100) : 34 },
+                logreia: { ...prev.logreia, score: scores.logreia, percent: total ? Math.round((scores.logreia / safeTotal) * 100) : 33 },
+                visiontium: { ...prev.visiontium, score: scores.visiontium, percent: total ? Math.round((scores.visiontium / safeTotal) * 100) : 33 },
+                factoria: { ...prev.factoria, score: scores.factoria, percent: total ? Math.round((scores.factoria / safeTotal) * 100) : 34 },
             }));
         });
 
@@ -50,7 +37,6 @@ export default function EmpireWarMap() {
     }, []);
 
     useEffect(() => {
-        // Determine winner
         const winner = Object.keys(territories).reduce((a, b) =>
             territories[a].score > territories[b].score ? a : b
         );
@@ -81,10 +67,6 @@ export default function EmpireWarMap() {
 
                 {/* Tactical Map Visual (SVG) */}
                 <div className="relative w-full aspect-[16/9] mb-8 bg-[#0a150c] rounded-2xl border border-white/5 overflow-hidden shadow-inner flex items-center justify-center">
-                    {/* 
-                        Abstract Map Representation with SVG 
-                        Divided into 3 Zones loosely based on Voronoi or just Polygons
-                     */}
                     <svg viewBox="0 0 400 225" className="w-full h-full drop-shadow-2xl">
                         {/* Logreia Territory (Left) */}
                         <path
@@ -114,22 +96,19 @@ export default function EmpireWarMap() {
                             className="transition-all duration-1000 hover:fill-opacity-40 cursor-pointer"
                         />
 
-                        {/* Zone Markers - Centered roughly in each poly */}
-                        {/* Logreia Marker */}
+                        {/* Zone Markers */}
                         <g transform="translate(80, 110)">
                             <circle r="20" fill="#0f1a12" stroke={territories.logreia.color} strokeWidth="2" className="animate-pulse" />
                             <text x="0" y="5" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">L</text>
                             <text x="0" y="32" textAnchor="middle" fill={territories.logreia.color} fontSize="10" fontWeight="bold">{territories.logreia.percent}%</text>
                         </g>
 
-                        {/* Visiontium Marker */}
                         <g transform="translate(300, 60)">
                             <circle r="20" fill="#0f1a12" stroke={territories.visiontium.color} strokeWidth="2" className="animate-pulse" style={{ animationDelay: '0.5s' }} />
                             <text x="0" y="5" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">V</text>
                             <text x="0" y="32" textAnchor="middle" fill={territories.visiontium.color} fontSize="10" fontWeight="bold">{territories.visiontium.percent}%</text>
                         </g>
 
-                        {/* Factoria Marker */}
                         <g transform="translate(280, 180)">
                             <circle r="20" fill="#0f1a12" stroke={territories.factoria.color} strokeWidth="2" className="animate-pulse" style={{ animationDelay: '1s' }} />
                             <text x="0" y="5" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">F</text>

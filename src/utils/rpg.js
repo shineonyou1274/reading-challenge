@@ -19,15 +19,20 @@ export const RPG_CONFIG = {
     MAX_PPM: 3.0,           // Physical Limit: Max 3 Pages Per Minute (WPM Check)
     MIN_SESSION_SEC: 60,    // Minimum session time to count
 
-    // 2. Persistent Rank System (누적 경험치 기반 작위)
+    // 2. Persistent Rank System (누적 경험치 기반 작위) — 12단계
     RANKS: [
-        { minLevel: 1, id: 'commoner', label: '평민 (Commoner)', icon: 'person' },
-        { minLevel: 5, id: 'knight', label: '기사 (Knight)', icon: 'shield' },
-        { minLevel: 10, id: 'baron', label: '남작 (Baron)', icon: 'fort' },
-        { minLevel: 20, id: 'viscount', label: '자작 (Viscount)', icon: 'castle' },
-        { minLevel: 35, id: 'count', label: '백작 (Count)', icon: 'domain' },
-        { minLevel: 50, id: 'marquis', label: '후작 (Marquis)', icon: 'crown' },
-        { minLevel: 75, id: 'duke', label: '공작 (Duke)', icon: 'workspace_premium' },
+        { minLevel: 1,  id: 'commoner',      label: '평민 (Commoner)',        icon: 'person' },
+        { minLevel: 3,  id: 'squire',         label: '시종 (Squire)',          icon: 'handshake' },
+        { minLevel: 5,  id: 'knight',         label: '기사 (Knight)',          icon: 'shield' },
+        { minLevel: 8,  id: 'knight_captain', label: '기사단장 (Captain)',     icon: 'security' },
+        { minLevel: 10, id: 'baron',          label: '남작 (Baron)',           icon: 'fort' },
+        { minLevel: 15, id: 'baronet',        label: '준남작 (Baronet)',       icon: 'assured_workload' },
+        { minLevel: 20, id: 'viscount',       label: '자작 (Viscount)',        icon: 'castle' },
+        { minLevel: 28, id: 'earl',           label: '伯 (Earl)',              icon: 'account_balance' },
+        { minLevel: 35, id: 'count',          label: '백작 (Count)',           icon: 'domain' },
+        { minLevel: 45, id: 'marquis',        label: '후작 (Marquis)',         icon: 'crown' },
+        { minLevel: 60, id: 'duke',           label: '공작 (Duke)',            icon: 'workspace_premium' },
+        { minLevel: 80, id: 'archduke',       label: '대공 (Archduke)',        icon: 'diamond' },
     ],
 
     // 3. New Empire Definitions
@@ -47,15 +52,15 @@ export const RPG_CONFIG = {
     SHOP_ITEMS: {
         streak_shield: {
             id: 'streak_shield', name: '연속 방패', price: 500, icon: '🛡️',
-            desc: '스트릭이 끊길 위기에서 1회 자동 보호', type: 'consumable'
+            desc: '연속 독서 기록이 끊길 때 1회 자동 보호', type: 'consumable'
         },
         xp_booster: {
             id: 'xp_booster', name: 'XP 부스터', price: 300, icon: '⚡',
-            desc: '다음 독서 세션 XP 1.5배 (1회)', type: 'consumable'
+            desc: '다음 독서 시 경험치 1.5배 (1회)', type: 'consumable'
         },
-        lucky_key: {
-            id: 'lucky_key', name: '행운의 열쇠', price: 200, icon: '🗝️',
-            desc: '보물상자를 즉시 하나 개봉', type: 'consumable'
+        relic_radar: {
+            id: 'relic_radar', name: '유물 탐지기', price: 200, icon: '📡',
+            desc: '다음 독서 시 유물 획득 확률 2배 (1회)', type: 'consumable'
         },
         theme_aurora: {
             id: 'theme_aurora', name: '오로라 테마', price: 1000, icon: '🌌',
@@ -64,6 +69,30 @@ export const RPG_CONFIG = {
         title_sage: {
             id: 'title_sage', name: '현자 칭호', price: 2000, icon: '🔮',
             desc: '이름 옆에 ✦현자✦ 칭호 표시', type: 'permanent'
+        },
+        title_knight: {
+            id: 'title_knight', name: '기사 칭호', price: 1500, icon: '⚔️',
+            desc: '이름 옆에 ⚔️기사⚔️ 칭호 표시', type: 'permanent'
+        },
+        title_archmage: {
+            id: 'title_archmage', name: '대마법사 칭호', price: 3000, icon: '🌟',
+            desc: '이름 옆에 🌟대마법사🌟 칭호 표시', type: 'permanent'
+        },
+        theme_midnight: {
+            id: 'theme_midnight', name: '심야 테마', price: 1200, icon: '🌙',
+            desc: '심야의 보랏빛 배경 테마', type: 'permanent'
+        },
+        theme_forest: {
+            id: 'theme_forest', name: '고대숲 테마', price: 1200, icon: '🌲',
+            desc: '깊은 숲의 초록빛 배경 테마', type: 'permanent'
+        },
+        frame_gold: {
+            id: 'frame_gold', name: '황금 프레임', price: 800, icon: '🖼️',
+            desc: '프로필 아바타에 황금 테두리 적용', type: 'permanent'
+        },
+        frame_crystal: {
+            id: 'frame_crystal', name: '수정 프레임', price: 1500, icon: '💎',
+            desc: '프로필 아바타에 수정 테두리 적용', type: 'permanent'
         },
     },
 
@@ -98,6 +127,16 @@ export const getLevelFromXP = (totalXp) => {
         xpLimit = getXpForLevel(level);
     }
     return { level, currentXp: Math.floor(totalXp), xpLimit };
+};
+
+/**
+ * Get display title considering purchased titles (priority: archmage > knight > sage > rank-based)
+ */
+export const getDisplayTitle = (inventory, defaultTitle) => {
+    if ((inventory?.title_archmage || 0) > 0) return '🌟대마법사🌟';
+    if ((inventory?.title_knight || 0) > 0) return '⚔️기사⚔️';
+    if ((inventory?.title_sage || 0) > 0) return '✦현자✦';
+    return defaultTitle || '학자';
 };
 
 /**

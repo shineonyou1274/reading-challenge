@@ -1,11 +1,15 @@
 /**
- * DailyQuests — 오늘의 임무 위젯
- * QuestBoard 하단에 삽입. 오늘의 퀘스트 3개 + 진행 상황 표시.
+ * DailyQuests — 오늘의 임무 / 장기 임무 위젯
+ * questType="daily" → 일일 퀘스트만, "long" → 주간/월간만
  */
 import { useMemo } from 'react';
-import { getTodayKey, getTodayQuests } from '../utils/dailyQuests';
+import { getTodayKey, getTodayQuests, getWeekKey, getWeeklyQuests, getMonthKey, getMonthlyQuest } from '../utils/dailyQuests';
 
-export default function DailyQuests({ stats, todaySeconds }) {
+export default function DailyQuests({ stats, todaySeconds, questType = 'daily' }) {
+    if (questType === 'long') {
+        return <WeeklyMonthlyQuests stats={stats} />;
+    }
+
     const todayKey = getTodayKey();
     const quests = useMemo(() => getTodayQuests(), [todayKey]);
     const completedToday = stats?.dailyQuestProgress?.[todayKey] || {};
@@ -147,6 +151,70 @@ export default function DailyQuests({ stats, todaySeconds }) {
                     <p className="text-[10px] text-[#2bee4b]/70 mt-0.5">내일 새로운 임무가 기다립니다</p>
                 </div>
             )}
+        </div>
+    );
+}
+
+/* ── 주간/월간 퀘스트 서브 컴포넌트 ── */
+function WeeklyMonthlyQuests({ stats }) {
+    const weekKey = getWeekKey();
+    const monthKey = getMonthKey();
+    const weeklyQuests = useMemo(() => getWeeklyQuests(), [weekKey]);
+    const monthlyQuest = useMemo(() => getMonthlyQuest(), [monthKey]);
+
+    const weeklyProgress = stats?.weeklyQuestProgress?.[weekKey] || {};
+    const monthlyProgress = stats?.monthlyQuestProgress?.[monthKey] || {};
+
+    const allQuests = [
+        ...weeklyQuests.map(q => ({ ...q, type: 'weekly', done: !!weeklyProgress[q.id] })),
+        { ...monthlyQuest, type: 'monthly', done: !!monthlyProgress[monthlyQuest.id] },
+    ];
+
+    return (
+        <div className="bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-3xl p-4 shadow-sm space-y-2">
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-[#92c99b] mb-2">
+                장기 임무 · 주간 & 월간
+            </p>
+            {allQuests.map(quest => (
+                <div
+                    key={quest.id}
+                    className={`flex items-center gap-3 p-2.5 rounded-2xl transition-all ${
+                        quest.done
+                            ? 'bg-[#2bee4b]/10 border border-[#2bee4b]/30'
+                            : 'bg-stone-50 dark:bg-black/20 border border-transparent'
+                    }`}
+                >
+                    <div className={`w-8 h-8 shrink-0 rounded-xl flex items-center justify-center text-base transition-all ${
+                        quest.done ? 'bg-[#2bee4b]/20' : 'bg-stone-100 dark:bg-black/30'
+                    }`}>
+                        {quest.done ? '✅' : quest.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase ${
+                                    quest.type === 'monthly'
+                                        ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400'
+                                        : 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                                }`}>
+                                    {quest.type === 'monthly' ? '월간' : '주간'}
+                                </span>
+                                <span className={`text-xs font-bold truncate ${
+                                    quest.done ? 'line-through text-slate-400 dark:text-gray-500' : 'text-slate-800 dark:text-white'
+                                }`}>
+                                    {quest.name}
+                                </span>
+                            </div>
+                            <span className={`text-[9px] font-black shrink-0 ${quest.done ? 'text-[#2bee4b]' : 'text-amber-400'}`}>
+                                {quest.done ? '획득!' : `+${quest.xpReward} XP`}
+                            </span>
+                        </div>
+                        {!quest.done && (
+                            <p className="text-[9px] text-slate-400 dark:text-gray-600 mt-0.5 truncate">{quest.desc}</p>
+                        )}
+                    </div>
+                </div>
+            ))}
         </div>
     );
 }

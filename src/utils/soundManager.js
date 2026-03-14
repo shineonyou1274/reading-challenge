@@ -187,6 +187,26 @@ class SoundManager {
         this._sfxOsc(900, 'sine', 0.12, now, now + 0.05);
     }
 
+    // ─── SFX: 타이핑 (키보드 타자 소리) ─────────────────────────────
+    playTyping() {
+        if (!this.sfxEnabled) return;
+        this._initCtx();
+        const now = this.ctx.currentTime;
+        const buf = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.02, this.ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let j = 0; j < data.length; j++) {
+            data[j] = (Math.random() * 2 - 1) * Math.exp(-j / (data.length * 0.15));
+        }
+        const src = this.ctx.createBufferSource();
+        src.buffer = buf;
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+        src.connect(gain);
+        gain.connect(this.sfxGain);
+        src.start(now);
+    }
+
     // ─── SFX: 스트릭 마일스톤 🔥 ────────────────────────────────────
     playStreak() {
         if (!this.sfxEnabled) return;

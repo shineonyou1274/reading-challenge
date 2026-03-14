@@ -1,10 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { collection, doc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { RPG_CONFIG } from '../utils/rpg';
 
+// 탑 레벨 정의: 완독 권수 → 탑 단계
+const TOWER_LEVELS = [
+    { min: 0,  label: '초석',       emoji: '🪨', height: '10%' },
+    { min: 3,  label: '목조 서재',  emoji: '🏚️', height: '20%' },
+    { min: 7,  label: '석조 탑',    emoji: '🏠', height: '35%' },
+    { min: 15, label: '기사의 탑',  emoji: '🏰', height: '50%' },
+    { min: 25, label: '왕실 도서관', emoji: '🏛️', height: '65%' },
+    { min: 40, label: '학자의 성',  emoji: '🏯', height: '80%' },
+    { min: 60, label: '지혜의 대성', emoji: '👑', height: '100%' },
+];
+
+function getTowerLevel(bookCount) {
+    const levels = [...TOWER_LEVELS].reverse();
+    return levels.find(l => bookCount >= l.min) || TOWER_LEVELS[0];
+}
+
+function getNextTowerLevel(bookCount) {
+    return TOWER_LEVELS.find(l => l.min > bookCount) || null;
+}
+
 export default function GlobalStatsModal({ isOpen, onClose }) {
     const [personalTotal, setPersonalTotal] = useState(0);
+    const [totalBooks, setTotalBooks] = useState(0);
+    const [totalSessions, setTotalSessions] = useState(0);
     const [empireStats, setEmpireStats] = useState({
         logreia: 0,
         visiontium: 0,
@@ -15,48 +37,41 @@ export default function GlobalStatsModal({ isOpen, onClose }) {
     useEffect(() => {
         if (!isOpen || !auth.currentUser) return;
 
-        let unsubscribePersonal = () => { };
+        let unsubPersonal = () => {};
+        let unsubEmpire = () => {};
 
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const sessionsRef = collection(db, 'users', auth.currentUser.uid, 'sessions');
-                unsubscribePersonal = onSnapshot(sessionsRef, (snapshot) => {
-                    let pTotal = 0;
-                    snapshot.forEach(doc => {
-                        pTotal += (doc.data().elapsedTime || 0);
-                    });
-                    setPersonalTotal(pTotal);
-                });
+        setLoading(true);
 
-                const usersRef = collection(db, 'users');
-                const userDocs = await getDocs(usersRef);
-                let empireTotals = { logreia: 0, visiontium: 0, factoria: 0 };
+        // 개인 누적 시간 + 책 수: 세션 서브컬렉션 실시간 구독
+        const sessionsRef = collection(db, 'users', auth.currentUser.uid, 'sessions');
+        unsubPersonal = onSnapshot(sessionsRef, (snapshot) => {
+            let pTotal = 0;
+            const bookSet = new Set();
+            snapshot.forEach(d => {
+                const data = d.data();
+                pTotal += (data.elapsedTime || 0);
+                if (data.bookTitle) bookSet.add(data.bookTitle);
+            });
+            setPersonalTotal(pTotal);
+            setTotalBooks(bookSet.size);
+            setTotalSessions(snapshot.size);
+            setLoading(false);
+        });
 
-                userDocs.forEach(d => {
-                    const data = d.data();
-                    if (data.empireId && empireTotals[data.empireId] !== undefined) {
-                        empireTotals[data.empireId] += (data.totalXp || 0) * 6;
-                    }
-                });
-
-                setEmpireStats({
-                    logreia: empireTotals.logreia,
-                    visiontium: empireTotals.visiontium,
-                    factoria: empireTotals.factoria
-                });
-
-            } catch (err) {
-                console.error("Stats fetch error:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
+        // 제국 통계: 집계 문서 1개 읽기 (전체 users 읽기 제거)
+        unsubEmpire = onSnapshot(doc(db, 'stats', 'empire_totals'), (snap) => {
+            if (!snap.exists()) return;
+            const data = snap.data();
+            setEmpireStats({
+                logreia: (data.logreia?.xp || 0) * 6,
+                visiontium: (data.visiontium?.xp || 0) * 6,
+                factoria: (data.factoria?.xp || 0) * 6,
+            });
+        });
 
         return () => {
-            unsubscribePersonal();
+            unsubPersonal();
+            unsubEmpire();
         };
     }, [isOpen]);
 
@@ -94,6 +109,61 @@ export default function GlobalStatsModal({ isOpen, onClose }) {
                             <p className="text-3xl font-black text-slate-900 dark:text-white">{formatTime(personalTotal)}</p>
                         )}
                     </div>
+
+                    {/* 지혜의 탑 시각화 */}
+                    {!loading && (() => {
+                        const tower = getTowerLevel(totalBooks);
+                        const next = getNextTowerLevel(totalBooks);
+                        const avgSession = totalSessions > 0 ? Math.floor(personalTotal / totalSessions / 60) : 0;
+                        // 문장형 인사이트
+                        const insights = [];
+                        if (totalSessions >= 10) insights.push(`총 ${totalSessions}번의 독서 세션을 기록했습니다`);
+                        if (avgSession >= 30) insights.push(`평균 세션이 ${avgSession}분 — 깊은 몰입의 독서가!`);
+                        else if (avgSession >= 15) insights.push(`평균 세션 ${avgSession}분 — 꾸준한 독서 습관!`);
+                        if (totalBooks >= 10) insights.push(`${totalBooks}권의 책과 만났습니다`);
+                        const totalHours = Math.floor(personalTotal / 3600);
+                        if (totalHours >= 50) insights.push(`누적 ${totalHours}시간 — 진정한 독서 장인!`);
+                        else if (totalHours >= 10) insights.push(`${totalHours}시간의 독서 여정이 쌓이는 중`);
+
+                        return (
+                            <div className="bg-gradient-to-b from-stone-50 to-stone-100 dark:from-[#0f1a12] dark:to-black/30 rounded-2xl p-5 border border-stone-200 dark:border-white/10">
+                                <p className="text-[10px] text-slate-400 dark:text-gray-500 font-bold uppercase tracking-widest text-center mb-3">지혜의 탑</p>
+                                {/* 탑 시각화 */}
+                                <div className="flex items-end justify-center gap-4 h-32 mb-3">
+                                    <div className="relative w-20 h-full bg-stone-200/50 dark:bg-white/5 rounded-xl overflow-hidden border border-stone-200 dark:border-white/10">
+                                        <div
+                                            className="absolute bottom-0 w-full bg-gradient-to-t from-[#2bee4b] to-[#2bee4b]/40 rounded-b-xl transition-all duration-1000 ease-out"
+                                            style={{ height: tower.height }}
+                                        />
+                                        <div className="absolute inset-0 flex flex-col items-center justify-end pb-2">
+                                            <span className="text-2xl drop-shadow-lg">{tower.emoji}</span>
+                                        </div>
+                                    </div>
+                                    <div className="text-left pb-2">
+                                        <p className="text-lg font-black text-slate-900 dark:text-white">{tower.label}</p>
+                                        <p className="text-xs text-[#057a1b] dark:text-[#2bee4b] font-bold">{totalBooks}권 완독</p>
+                                        {next && (
+                                            <p className="text-[10px] text-slate-400 dark:text-gray-500 mt-1">
+                                                다음: {next.emoji} {next.label} ({next.min}권)
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* 문장형 인사이트 */}
+                                {insights.length > 0 && (
+                                    <div className="space-y-1.5 mt-3 pt-3 border-t border-stone-200/50 dark:border-white/5">
+                                        {insights.map((text, i) => (
+                                            <p key={i} className="text-[11px] text-slate-500 dark:text-gray-400 flex items-start gap-2">
+                                                <span className="text-[#2bee4b] shrink-0">•</span>
+                                                {text}
+                                            </p>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })()}
 
                     {/* Empire Stats */}
                     <div className="space-y-2">

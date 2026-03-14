@@ -9,9 +9,10 @@ import ActivityHeatmap from './ActivityHeatmap';
 import { getDailyQuote } from '../utils/quotes';
 import DailyQuests from './DailyQuests';
 import FocusTimer from './FocusTimer';
+import ContextTip from './ContextTip';
 
 
-export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
+export default function QuestBoard({ stats, onSaveSession, onGoToLibrary, onModalChange }) {
     const {
         isRunning,
         elapsedTime,
@@ -23,7 +24,8 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
         calculateRewards
     } = useReadingSession();
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isModalOpen, _setIsModalOpen] = useState(false);
+    const setIsModalOpen = (v) => { _setIsModalOpen(v); onModalChange?.(v); };
     const [isbn, setIsbn] = useState('');
     const [bookTitle, setBookTitle] = useState('');
     const [bookAuthor, setBookAuthor] = useState('');
@@ -42,6 +44,9 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
     const [saveToast, setSaveToast] = useState(null); // { xp, gold } | null
     const [timerMode, setTimerMode] = useState('free'); // 'free' | 'goal'
     const [goalMinutes, setGoalMinutes] = useState(25);
+    const [mood, setMood] = useState('');
+    const [showDailyQuest, setShowDailyQuest] = useState(false);
+    const [showLongQuest, setShowLongQuest] = useState(false);
 
     // Books Search State
     const [searchResults, setSearchResults] = useState([]);
@@ -147,39 +152,46 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
             />
         )}
         <div className="animate-book space-y-5 pb-10">
-            {/* 📜 오늘의 명언 — 최상단 */}
-            {(() => {
-                const quote = getDailyQuote();
-                return (
-                    <section className="px-4 pt-4">
-                        <div className="rounded-2xl bg-gradient-to-r from-[#0d1f10] to-[#1a331d] border border-[#2bee4b]/20 px-5 py-4 relative overflow-hidden flex items-center gap-3">
-                            <div className="text-2xl shrink-0 opacity-80">📜</div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-white/90 text-xs font-medium leading-relaxed italic">"{quote.text}"</p>
-                                <p className="text-[#2bee4b] text-[10px] font-bold mt-0.5">— {quote.author}</p>
+            <ContextTip
+                tipKey="dashboard"
+                icon="🏰"
+                title="수석 기록관의 안내"
+                message="여기는 황실 기록소의 본관입니다. 아래에서 책을 선택하고 독서를 시작하면 경험치와 골드를 획득할 수 있습니다. 매일 독서하면 연속 기록 보너스도 받아요!"
+            />
+            {/* 벤토 그리드: 명언 + 통계 통합 */}
+            <section className="px-4 pt-4">
+                <div className="grid grid-cols-2 gap-2.5">
+                    {/* 왼쪽: 명언 (2행 높이) */}
+                    {(() => {
+                        const quote = getDailyQuote();
+                        return (
+                            <div className="row-span-2 rounded-2xl bg-gradient-to-br from-[#0d1f10] to-[#1a331d] border border-[#2bee4b]/20 p-4 flex flex-col justify-between relative overflow-hidden">
+                                <div className="absolute top-2 right-2 text-xl opacity-20">📜</div>
+                                <p className="text-white/90 text-[11px] font-medium leading-relaxed italic flex-1">"{quote.text}"</p>
+                                <p className="text-[#2bee4b] text-[9px] font-bold mt-2">— {quote.author}</p>
                             </div>
+                        );
+                    })()}
+                    {/* 오른쪽 상단: 오늘 독서 */}
+                    <div className="bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-2xl p-3 flex items-center gap-2.5 shadow-sm">
+                        <span className="material-symbols-outlined text-lg text-[#2bee4b] shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span>
+                        <div>
+                            <p className="text-base font-black text-slate-900 dark:text-white tabular-nums leading-tight">{formatTotalTime(todayTotalSeconds)}</p>
+                            <p className="text-[8px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#92c99b]">오늘 독서</p>
                         </div>
-                    </section>
-                );
-            })()}
-
-            {/* 📊 오늘의 통계 1×3 그리드 */}
-            <section className="px-4">
-                <div className="grid grid-cols-3 gap-3 mb-5">
-                    <div className="bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-2xl p-3 text-center shadow-sm">
-                        <span className="material-symbols-outlined text-lg text-[#2bee4b] mb-1" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span>
-                        <p className="text-lg font-black text-slate-900 dark:text-white tabular-nums leading-tight">{formatTotalTime(todayTotalSeconds)}</p>
-                        <p className="text-[8px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#92c99b] mt-0.5">오늘 독서</p>
                     </div>
-                    <div className="bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-2xl p-3 text-center shadow-sm">
-                        <span className="material-symbols-outlined text-lg text-orange-400 mb-1" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
-                        <p className="text-lg font-black text-slate-900 dark:text-white tabular-nums leading-tight">{stats?.streak || 0}일</p>
-                        <p className="text-[8px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#92c99b] mt-0.5">연속 스트릭</p>
-                    </div>
-                    <div className="bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-2xl p-3 text-center shadow-sm">
-                        <span className="material-symbols-outlined text-lg text-amber-400 mb-1" style={{ fontVariationSettings: "'FILL' 1" }}>stars</span>
-                        <p className="text-lg font-black text-slate-900 dark:text-white tabular-nums leading-tight">{stats?.totalXp?.toLocaleString() || 0}</p>
-                        <p className="text-[8px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#92c99b] mt-0.5">누적 XP</p>
+                    {/* 오른쪽 하단: 스트릭 + XP 2열 */}
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-2xl p-2.5 text-center shadow-sm">
+                            <span className="material-symbols-outlined text-sm text-orange-400" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
+                            <p className="text-sm font-black text-slate-900 dark:text-white tabular-nums leading-tight">{stats?.streak || 0}일</p>
+                            <p className="text-[7px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#92c99b]">스트릭</p>
+                        </div>
+                        <div className="bg-white dark:bg-[#1a331d] border border-stone-200 dark:border-[#32673b] rounded-2xl p-2.5 text-center shadow-sm">
+                            <span className="material-symbols-outlined text-sm text-amber-400" style={{ fontVariationSettings: "'FILL' 1" }}>stars</span>
+                            <p className="text-sm font-black text-slate-900 dark:text-white tabular-nums leading-tight">{stats?.totalXp?.toLocaleString() || 0}</p>
+                            <p className="text-[7px] font-bold uppercase tracking-widest text-slate-400 dark:text-[#92c99b]">누적 XP</p>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -284,12 +296,49 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                 }
             </section>
 
-            {/* ActivityHeatmap — 일시 숨김 */}
-            {/* <ActivityHeatmap createdAt={stats?.createdAt} onGoToLibrary={onGoToLibrary} /> */}
+            {/* 독서 잔디 히트맵 */}
+            <ActivityHeatmap createdAt={stats?.createdAt} onGoToLibrary={onGoToLibrary} />
 
-            {/* 📋 오늘의 임무 (데일리 퀘스트) */}
+            {/* 📋 임무 토글 버튼 */}
             <section className="px-4">
-                <DailyQuests stats={stats} todaySeconds={todayTotalSeconds} />
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => { setShowDailyQuest(v => !v); setShowLongQuest(false); }}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all border ${
+                            showDailyQuest
+                                ? 'bg-[#2bee4b] text-[#102213] border-[#2bee4b] shadow-[0_2px_12px_rgba(43,238,75,0.25)]'
+                                : 'bg-white dark:bg-[#1a331d] text-slate-600 dark:text-gray-400 border-stone-200 dark:border-[#32673b]'
+                        }`}
+                    >
+                        <span className="text-base">📋</span>
+                        오늘의 임무
+                    </button>
+                    <button
+                        onClick={() => { setShowLongQuest(v => !v); setShowDailyQuest(false); }}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all border ${
+                            showLongQuest
+                                ? 'bg-[#2bee4b] text-[#102213] border-[#2bee4b] shadow-[0_2px_12px_rgba(43,238,75,0.25)]'
+                                : 'bg-white dark:bg-[#1a331d] text-slate-600 dark:text-gray-400 border-stone-200 dark:border-[#32673b]'
+                        }`}
+                    >
+                        <span className="text-base">🗓️</span>
+                        장기 임무
+                    </button>
+                </div>
+
+                {/* 오늘의 임무 패널 */}
+                {showDailyQuest && (
+                    <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <DailyQuests stats={stats} todaySeconds={todayTotalSeconds} questType="daily" />
+                    </div>
+                )}
+
+                {/* 장기 임무 패널 */}
+                {showLongQuest && (
+                    <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <DailyQuests stats={stats} todaySeconds={todayTotalSeconds} questType="long" />
+                    </div>
+                )}
             </section>
 
             {/* Verification Modal with Search */}
@@ -474,6 +523,34 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                                         <p className="text-[9px] text-[#2bee4b]/60 mt-1 text-right">{summary.length}/80</p>
                                     )}
                                 </div>
+
+                                {/* 독서 감정 태그 */}
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 dark:text-gray-500 uppercase tracking-wider mb-2 ml-1">오늘의 독서 감정</p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {[
+                                            { id: 'immersed',    label: '몰입',   emoji: '🔥' },
+                                            { id: 'calm',        label: '잔잔',   emoji: '🌊' },
+                                            { id: 'inspired',    label: '영감',   emoji: '💡' },
+                                            { id: 'emotional',   label: '감동',   emoji: '🥹' },
+                                            { id: 'challenged',  label: '도전적', emoji: '🧗' },
+                                            { id: 'relaxed',     label: '편안',   emoji: '☕' },
+                                        ].map(m => (
+                                            <button
+                                                key={m.id}
+                                                onClick={() => setMood(mood === m.id ? '' : m.id)}
+                                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                                    mood === m.id
+                                                        ? 'bg-[#2bee4b] text-[#102213] shadow-sm'
+                                                        : 'bg-stone-100 dark:bg-black/30 text-slate-500 dark:text-gray-400'
+                                                }`}
+                                            >
+                                                <span className="text-sm">{m.emoji}</span>
+                                                {m.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="space-y-3">
@@ -506,6 +583,7 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                                             bookImage,
                                             note,
                                             summary,
+                                            mood: mood || null,
                                             pagesRead: pRead,
                                             isVerified: rewards.isVerified,
                                             rewards
@@ -519,6 +597,7 @@ export default function QuestBoard({ stats, onSaveSession, onGoToLibrary }) {
                                         setBookImage('');
                                         setNote('');
                                         setSummary('');
+                                        setMood('');
                                         setPagesRead('');
                                         setSearchResults([]);
                                         resetSession();

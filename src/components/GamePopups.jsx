@@ -17,6 +17,7 @@ export default function GamePopups({ queue, onNext, stats }) {
         if (current.type === 'levelup') soundManager.playLevelUp();
         else if (current.type === 'streak') soundManager.playStreak();
         else if (current.type === 'achievement') soundManager.playAchievement();
+        else if (current.type === 'relic') soundManager.playAchievement();
         else if (current.type === 'dailyquest') soundManager.playSuccess?.();
         // chest는 클릭해서 열 때 재생
     }, [current?.type]);
@@ -39,11 +40,12 @@ export default function GamePopups({ queue, onNext, stats }) {
             {current.type === 'levelup' && <LevelUpPopup data={current.data} />}
             {current.type === 'streak' && <StreakPopup data={current.data} stats={stats} />}
             {current.type === 'chest' && <ChestPopup data={current.data} />}
+            {current.type === 'relic' && <RelicPopup data={current.data} />}
             {current.type === 'achievement' && <AchievementPopup data={current.data} />}
             {current.type === 'dailyquest' && <DailyQuestPopup data={current.data} />}
             {current.type === 'shield' && <ShieldPopup data={current.data} />}
 
-            <p className="absolute bottom-10 text-gray-600 text-xs animate-pulse tracking-widest uppercase">
+            <p className="absolute bottom-10 text-gray-400 text-xs animate-pulse tracking-widest uppercase">
                 화면을 터치하면 계속
             </p>
         </div>
@@ -175,7 +177,7 @@ function ChestPopup({ data }) {
                         >
                             🔓 상자 열기
                         </button>
-                        <p className="text-gray-600 text-xs mt-4">버튼을 눌러 열거나, 화면을 터치하면 넘어갑니다</p>
+                        <p className="text-gray-400 text-xs mt-4">버튼을 눌러 열거나, 화면을 터치하면 넘어갑니다</p>
                     </>
                 ) : (
                     <div className="animate-in zoom-in-90 duration-300">
@@ -239,10 +241,34 @@ function ShieldPopup({ data }) {
                 <p className="text-blue-400 text-[10px] font-black uppercase tracking-[0.5em] mb-2">Shield Activated!</p>
                 <h2 className="text-3xl font-black text-white mb-2">연속 방패 발동!</h2>
                 <p className="text-gray-400 text-sm mb-5">
-                    스트릭이 끊길 위기였지만<br />방패가 스트릭을 지켰습니다!
+                    연속 기록이 끊길 위기였지만<br />방패가 기록을 지켰습니다!
                 </p>
                 <div className="inline-flex items-center gap-2 px-5 py-2 bg-blue-400/20 border border-blue-400/30 rounded-full">
                     <span className="text-blue-400 font-black">🔥 {data.streak}일 연속 유지!</span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── 황실 유물 드롭 팝업 ──────────────────────────────────────────
+function RelicPopup({ data }) {
+    const { relic, rarityInfo, rarityLabel } = data;
+    return (
+        <div className="relative text-center px-8 animate-in zoom-in-90 duration-400">
+            <div className="absolute -inset-32 rounded-full blur-3xl animate-pulse" style={{ backgroundColor: rarityInfo.color + '20' }} />
+            <div className="relative">
+                <div className="text-8xl mb-4 drop-shadow-2xl animate-bounce">{relic.icon}</div>
+                <p className="text-[10px] font-black uppercase tracking-[0.5em] mb-2" style={{ color: rarityInfo.color }}>
+                    Relic Discovered!
+                </p>
+                <div className="inline-block px-3 py-1 rounded-full text-[10px] font-black mb-3" style={{ color: rarityInfo.color, backgroundColor: rarityInfo.color + '20', border: `1px solid ${rarityInfo.color}40` }}>
+                    {rarityLabel}
+                </div>
+                <h2 className="text-3xl font-black text-white mb-2">{relic.name}</h2>
+                <p className="text-gray-400 text-sm mb-5 max-w-xs mx-auto">{relic.desc}</p>
+                <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full" style={{ backgroundColor: rarityInfo.color + '20', border: `1px solid ${rarityInfo.color}30` }}>
+                    <span style={{ color: rarityInfo.color }} className="font-black text-sm">유물 컬렉션에 추가됨!</span>
                 </div>
             </div>
         </div>
